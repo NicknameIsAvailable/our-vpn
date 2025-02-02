@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Location {
+  id             String    @id @default(uuid())
+  name           String
+  country        String
+  city           String?
+  ip             String
+  hostname       String
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  bandwidthLimit Int?
+  currentLoad    Float?
+}
+
+model User {
+  id       String   @id @default(uuid())
+  email    String   @unique
+  nickname String   @unique
+  password String
+  configs  Config[]
+}
+
+model Config {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  config    Json
+  vlessUrl  String
+  @@map("VlessConfig")
+}
