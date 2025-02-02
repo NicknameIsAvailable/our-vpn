@@ -14,7 +14,10 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@nash-vpn/database": ["database/src/index.ts"],
+      "@nash-vpn/db": ["db/src/index.ts"]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }
