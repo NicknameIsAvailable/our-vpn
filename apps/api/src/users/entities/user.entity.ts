@@ -1,4 +1,4 @@
-import { Config } from "../../configs/entities/config.entity"
+import { Config } from "@prisma/client"
 
 export interface User {
   id: string

@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { CreateConfigDto } from './dto/create-config.dto';
-import { VlessConfig } from './entities/config.entity';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '@nash-vpn/db';
 import { CreateCustomConfigDto } from './dto/create-custom-config.dto';
-import { CurrentUser } from '../auth/guards/decorators/user.decorator';
+import { VlessConfig } from "types/vless"
 
 @Injectable()
 export class ConfigsService {
