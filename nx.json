@@ -35,7 +35,47 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/api-e2e/**/*"]
+      "exclude": ["apps/api-e2e/**/*", "apps/tg-bot-e2e/**/*"]
+    },
+    {
+      "plugin": "@nx/next/plugin",
+      "options": {
+        "startTargetName": "start",
+        "buildTargetName": "build",
+        "devTargetName": "dev",
+        "serveStaticTargetName": "serve-static"
+      }
+    },
+    {
+      "plugin": "@nx/vite/plugin",
+      "options": {
+        "buildTargetName": "build",
+        "testTargetName": "test",
+        "serveTargetName": "serve",
+        "previewTargetName": "preview",
+        "serveStaticTargetName": "serve-static",
+        "typecheckTargetName": "typecheck"
+      }
     }
-  ]
+  ],
+  "targetDefaults": {
+    "@nx/esbuild:esbuild": {
+      "cache": true,
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"]
+    }
+  },
+  "generators": {
+    "@nx/next": {
+      "application": {
+        "style": "tailwind",
+        "linter": "eslint"
+      }
+    },
+    "@nx/react": {
+      "library": {
+        "unitTestRunner": "none"
+      }
+    }
+  }
 }

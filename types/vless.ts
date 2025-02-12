@@ -1,5 +1,3 @@
-export class Config {}
-
 export interface ClientConfig {
   id: string;
   alterId?: number;
