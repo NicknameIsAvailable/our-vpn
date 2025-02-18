@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
-import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { clients, instructions, osList } from '../assets/assets';
+import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
+import { randomUUID } from 'crypto';
+import { ApiService } from '../api/api.service';
 
 @Injectable()
 export class BotService {
+  private readonly providerToken = process.env.TELEGRAM_PAYMENT_TOKEN
   constructor(
     @InjectBot() private readonly bot: Telegraf<Context>,
-    private readonly httpService: HttpService,
+    private readonly apiService: ApiService,
   ) {
     const botName = process.env.BOT_NAME;
 
@@ -30,7 +32,6 @@ export class BotService {
           },
         });
 
-        // Обработка выбора ОС
         this.bot.on("callback_query", async (ctx) => {
           const osKey = (ctx.callbackQuery as any).data;
 
@@ -76,7 +77,6 @@ export class BotService {
           }
         });
 
-        // Обработка выбора клиента
         this.bot.on("callback_query", async (ctx) => {
           const clientKey = (ctx.callbackQuery as any).data;
           const instruction = instructions.find(instr => instr.key === clientKey);
@@ -99,31 +99,100 @@ export class BotService {
       }
     });
 
-    // Команда генерации конфигурации
-    this.bot.command("generateConfig", async (ctx) => {
-      ctx.reply("Генерация конфига");
+    this.bot.command("subscribe", async (ctx) => {
+      try {
+        const paymentId = randomUUID();
+
+        const generateProviderData = (price: LabeledPrice) => JSON.stringify({
+          receipt: {
+            items: [{
+              description: price.label,
+              quantity: 1,
+              amount: { value: price.amount / 100, currency: "RUB" },
+              vat_code: 1,
+              payment_mode: "full_payment",
+              payment_subject: "commodity"
+            }],
+            tax_system_code: 1
+          }
+        });
+
+        for (const price of prices) {
+          await ctx.replyWithInvoice({
+            title: `${price.label} подписки`,
+            description: `${price.amount / 100} RUB за подписку`,
+            payload: `vpn_${price.key}_${paymentId}`,
+            provider_token: this.providerToken,
+            provider_data: generateProviderData(price),
+            send_email_to_provider: true,
+            currency: 'RUB',
+            prices: [price],
+            start_parameter: 'get_access',
+            need_email: true,
+          });
+        }
+      } catch (error) {
+        console.error('Ошибка при выставлении счета:', error);
+        await ctx.reply('Произошла ошибка при обработке платежа. Попробуйте снова.');
+      }
     });
 
-    // Команда авторизации
+    this.bot.on('pre_checkout_query', async (ctx) => {
+      try {
+        await ctx.answerPreCheckoutQuery(true);
+      } catch (error) {
+        console.error('Ошибка предавторизации платежа:', error);
+        await ctx.reply('Ошибка при обработке платежа. Попробуйте снова.');
+      }
+    });
+
+    this.bot.on('successful_payment', async (ctx) => {
+      try {
+        const paymentInfo = ctx.message.successful_payment;
+        const payload = paymentInfo.invoice_payload;
+        const email = paymentInfo.order_info?.email || 'не указан';
+        const userId = ctx.chat.id
+
+        await ctx.reply(`Спасибо за оплату!`, { parse_mode: "MarkdownV2" });
+        await ctx.reply('Генерируем подключение для вас');
+
+        const config = await this.apiService.createConfig({
+          email,
+          userId,
+          months: this.getSubscriptionLength(payload),
+          name: `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`
+        });
+
+        if (config) {
+          await ctx.reply(
+            `Ваш конфиг готов:\n\`\`\`\n${config.vlessUrl}\n\`\`\`
+            \n [Не знаете, что делать дальше? Нажмите сюда](/help)`,
+            { parse_mode: "MarkdownV2" }
+          );
+        } else {
+          await ctx.reply('Ошибка при генерации конфига. Свяжитесь с поддержкой.');
+        }
+      } catch (error) {
+        console.error('Ошибка обработки успешного платежа:', error);
+        await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.');
+      }
+    });
+
     this.bot.command('auth', async (ctx) => {
-      // Запрашиваем email и пароль пользователя
       await ctx.reply('Введите ваш email:');
 
       this.bot.on('text', async (messageCtx) => {
         const email = messageCtx.message.text;
 
-        // Запрашиваем пароль после ввода email
         await messageCtx.reply('Введите ваш пароль:');
 
         this.bot.on('text', async (passwordCtx) => {
           const password = passwordCtx.message.text;
 
           try {
-            // Отправляем запрос на авторизацию
             const authResponse = await this.authenticateUser(email, password);
 
             if (authResponse) {
-              // Если авторизация успешна, отправляем сообщение с токеном или другим результатом
               await passwordCtx.reply(`Вы успешно авторизовались! Токен: ${authResponse.token}`);
             } else {
               await passwordCtx.reply('Не удалось авторизоваться. Проверьте email и пароль.');
@@ -137,17 +206,14 @@ export class BotService {
     });
   }
 
-  async authenticateUser(email: string, password: string) {
-    const url = `${process.env.API_URL}/v1/auth/login`;
-    const body = {
-      email: email,
-      password: password,
-    };
+  getSubscriptionLength(payload: string): number {
+    const match = payload.match(/\d+/);
+    return match ? parseInt(match[0], 10) : null;
+  }
 
+  async authenticateUser(email: string, password: string) {
     try {
-      const response = await firstValueFrom(
-        this.httpService.post(url, body ),
-      );
+      const response = await this.apiService.authenticateUser(email, password);
       return response.data;
     } catch (error) {
       console.error('Ошибка авторизации', error);
