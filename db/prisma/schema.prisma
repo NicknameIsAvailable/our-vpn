@@ -27,14 +27,12 @@ model User {
   email    String   @unique
   nickname String   @unique
   password String
-  configs  Config[]
 }
 
 model Config {
   id        String   @id @default(uuid())
   name      String
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   config    Json
   vlessUrl  String
   @@map("VlessConfig")

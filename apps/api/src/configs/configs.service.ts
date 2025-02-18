@@ -1,6 +1,6 @@
+import { InboundResponse, xuiApi } from '@nash-vpn/xui';
 import { Injectable } from '@nestjs/common';
 import { CreateConfigDto } from './dto/create-config.dto';
-import { randomUUID } from 'crypto';
 import { PrismaService } from '@nash-vpn/db';
 import { CreateCustomConfigDto } from './dto/create-custom-config.dto';
 import { VlessConfig } from "types/vless"
@@ -9,60 +9,16 @@ import { VlessConfig } from "types/vless"
 export class ConfigsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  generateConfig(
-    uuid: string,
+  async generateConfig(
+    expiryTime: number,
     email: string,
-    excludedDomains: string[]
-  ): VlessConfig {
-    return {
-      log: {
-        access: "/var/log/xray/access.log",
-        error: "/var/log/xray/error.log",
-        loglevel: "info",
-      },
-      inbounds: [
-        {
-          port: 443,
-          protocol: "vless",
-          settings: {
-            clients: [
-              {
-                id: uuid,
-                email: email,
-              },
-            ],
-            decryption: "none",
-          },
-          streamSettings: {
-            network: "ws",
-            wsSettings: {
-              path: "/vless",
-            },
-            security: "tls",
-          },
-        },
-      ],
-      outbounds: [
-        {
-          protocol: "freedom",
-          settings: {},
-        },
-        {
-          protocol: "blackhole",
-          settings: {},
-          tag: "blocked",
-        },
-      ],
-      routing: {
-        rules: [
-          {
-            type: "field",
-            domain: excludedDomains,
-            outboundTag: "freedom",
-          },
-        ],
-      },
-    }
+  ) {
+    const config = await xuiApi.addInbound({
+      expiryTime,
+      email,
+      tgId: email
+    })
+    return config
   }
 
   parseVlessUrl(vlessUrl: string): VlessConfig {
@@ -89,7 +45,7 @@ export class ConfigsService {
             clients: [
               {
                 id: uuid,
-                email: 'iamgenii@yandex.ru',  // Можете передать email динамически
+                email: 'iamgenii@yandex.ru',
               },
             ],
             decryption: 'none',
@@ -97,7 +53,7 @@ export class ConfigsService {
           streamSettings: {
             network: network,
             wsSettings: {
-              path: decodeURIComponent(path),  // Декодируем путь
+              path: decodeURIComponent(path),
             },
             security: security,
           },
@@ -128,44 +84,45 @@ export class ConfigsService {
     return config;
   }
 
-  getVlessLinks(config: VlessConfig): string[] {
-    const links: string[] = [];
+  getVlessLinks(config: InboundResponse): string[] {
+    if (!config.obj) {
+      return [];
+    }
 
-    config.inbounds.forEach((inbound) => {
-      const { port, protocol, settings, streamSettings } = inbound;
+    const settings = JSON.parse(config.obj.settings);
+    const streamSettings = JSON.parse(config.obj.streamSettings);
 
-      if (protocol === "vless" && settings.clients.length > 0) {
-        settings.clients.forEach((client) => {
-          const uuid = client.id;
-          const network = streamSettings.network;
-          const path = streamSettings.wsSettings?.path || "";
-          const security = streamSettings.security;
+    if (config.obj.protocol === "vless" && settings.clients.length > 0) {
+      const { port } = config.obj;
+      const network = streamSettings.network;
+      const security = streamSettings.security;
+      const serverAddress = process.env["XUI_HOST"];
 
-          const link = `vless://${uuid}@${config.log.access}:${port}?type=${network}&security=${security}&path=${encodeURIComponent(
-            path
-          )}`;
-          links.push(link);
-        });
-      }
-    });
+      return settings.clients.map((client) => {
+        const pbk = streamSettings.realitySettings.settings.publicKey;
+        const sid = streamSettings.realitySettings.shortIds[0] || "";
+        const sni = streamSettings.realitySettings.dest.split(":")[0];
+        const spx = encodeURIComponent(streamSettings.realitySettings.settings.spiderX);
+        const flow = client.flow || "";
 
-    return links;
+        return `vless://${client.id}@${serverAddress}:${port}?type=${network}&security=${security}&pbk=${pbk}&fp=chrome&sni=${sni}&sid=${sid}&spx=${spx}&flow=${flow}#${client.email}`;
+      });
+    }
+
+    return [];
   }
 
-  create(userId: string, createConfigDto: CreateConfigDto) {
-    const configId = randomUUID();
-    const config = this.generateConfig(configId, createConfigDto.email, []);
+  async create(createConfigDto: CreateConfigDto) {
+    const expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000
+    const config: any = await this.generateConfig(expiryTime, createConfigDto.email);
     const vlessUrl = this.getVlessLinks(config);
 
     return this.prisma.config.create({
       data: {
-        userId,
+        userId: String(createConfigDto.userId),
         name: createConfigDto.name,
-        config: JSON.stringify(config),
+        config: JSON.stringify(config.obj),
         vlessUrl: vlessUrl[0]
-      },
-      include: {
-        user: true
       }
     });
   }
@@ -181,7 +138,7 @@ export class ConfigsService {
     return data
   }
 
-  findAll(userId: string) {
+  async findAll(userId: string) {
     return this.prisma.config.findMany({ where: {userId} });
   }
 

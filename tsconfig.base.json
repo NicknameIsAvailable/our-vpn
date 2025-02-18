@@ -17,7 +17,8 @@
     "paths": {
       "@nash-vpn/database": ["database/src/index.ts"],
       "@nash-vpn/db": ["db/src/index.ts"],
-      "@nash-vpn/ui": ["apps/landing/libs/ui/src/index.ts"]
+      "@nash-vpn/ui": ["apps/landing/libs/ui/src/index.ts"],
+      "@nash-vpn/xui": ["libs/xui/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

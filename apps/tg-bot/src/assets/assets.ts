@@ -49,6 +49,12 @@ export interface Instruction {
   key: ClientKey;
 }
 
+export interface LabeledPrice {
+  label: string
+  amount: number
+  key: string
+}
+
 export const osList: Os[] = [
   { name: "Android", key: OSKey.ANDROID },
   { name: "IPhone", key: OSKey.IOS },
@@ -146,3 +152,26 @@ export const instructions: Instruction[] = [
     downloadLink: "https://github.com/SagerNet/sing-box/releases",
   }
 ];
+
+export const prices: LabeledPrice[] = [
+  {
+    label: "1 месяц подписки",
+    amount: 69 * 100,
+    key: "1m",
+  },
+  {
+    label: "3 месяца подписки",
+    amount: 165 * 100,
+    key: "3m",
+  },
+  {
+    label: "6 месяцев подписки",
+    amount: 330 * 100,
+    key: "6m",
+  },
+  {
+    label: "12 месяцев подписки",
+    amount: 660 * 100,
+    key: "12m",
+  }
+]

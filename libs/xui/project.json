@@ -1,0 +1,19 @@
+{
+  "name": "xui",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/xui/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/xui",
+        "main": "libs/xui/src/index.ts",
+        "tsConfig": "libs/xui/tsconfig.lib.json",
+        "assets": ["libs/xui/*.md"]
+      }
+    }
+  },
+  "tags": []
+}

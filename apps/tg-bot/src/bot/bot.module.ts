@@ -2,14 +2,14 @@ import { Module } from '@nestjs/common';
 import { BotService } from './bot.service';
 import { BotController } from './bot.controller';
 import { TelegrafModule } from 'nestjs-telegraf';
-import { HttpModule } from '@nestjs/axios';
+import { ApiModule } from '../api/api.module';
 
 @Module({
   imports: [
     TelegrafModule.forRoot({
       token: process.env.TELEGRAM_BOT_TOKEN
     }),
-    HttpModule,
+    ApiModule,
   ],
   controllers: [BotController],
   providers: [BotService],

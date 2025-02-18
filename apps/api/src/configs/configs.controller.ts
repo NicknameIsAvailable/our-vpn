@@ -10,9 +10,9 @@ export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
 
   @Post()
-  @Auth()
-  async create(@CurrentUser('id') userId, @Body() createConfigDto: CreateConfigDto) {
-    const res = await this.configsService.create(userId, createConfigDto)
+  // @Auth()
+  async create(@Body() createConfigDto: CreateConfigDto) {
+    const res = await this.configsService.create(createConfigDto)
 
     return {...res, config: JSON.parse(String(res.config))};
   }
