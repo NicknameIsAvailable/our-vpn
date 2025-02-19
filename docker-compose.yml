@@ -1,17 +1,68 @@
-version: '3.8'
-
 services:
+  # postgres:
+  #   image: postgres:15
+  #   container_name: postgres-db
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: mydb
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - app-network
+
   api:
     build:
       context: .
-      dockerfile: Dockerfile
-      args:
-        APP_NAME: api
-    ports:
-      - "8080:8080"
+      dockerfile: apps/api/Dockerfile
+    container_name: api
+    # depends_on:
+    #   - postgres
     environment:
-      - NODE_ENV=development
-      - APP_NAME=api
-    volumes:
-      - .:/app
-      - /app/node_modules
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      API_PORT: ${API_PORT}
+      API_URL: ${API_URL}
+      API_TOKEN: ${API_TOKEN}
+    ports:
+      - "${API_PORT}:${API_PORT}"
+    networks:
+      - app-network
+
+  tg-bot:
+    build:
+      context: .
+      dockerfile: apps/tg-bot/Dockerfile
+    container_name: tg-bot
+    # depends_on:
+    #   - postgres
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      TELEGROM_BOT_API_TOKEN: ${TELEGROM_BOT_API_TOKEN}
+      TELEGRAM_PAYMENT_TOKEN: ${TELEGRAM_PAYMENT_TOKEN}
+    networks:
+      - app-network
+
+  db:
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+    container_name: db
+    # depends_on:
+    #   - postgres
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

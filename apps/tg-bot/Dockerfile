@@ -3,5 +3,5 @@ WORKDIR /app
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
 COPY . .
-RUN yarn nx build api
-CMD ["node", "dist/apps/api/main.js"]
+RUN yarn nx build tg-bot
+CMD ["node", "dist/apps/tg-bot/main.js"]
