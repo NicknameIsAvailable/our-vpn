@@ -13,6 +13,18 @@ services:
   #   networks:
   #     - app-network
 
+  db:
+    build:
+      context: .
+      dockerfile: db/Dockerfile
+    container_name: db
+    # depends_on:
+    #   - postgres
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - app-network
+
   api:
     build:
       context: .
@@ -45,18 +57,6 @@ services:
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       TELEGROM_BOT_API_TOKEN: ${TELEGROM_BOT_API_TOKEN}
       TELEGRAM_PAYMENT_TOKEN: ${TELEGRAM_PAYMENT_TOKEN}
-    networks:
-      - app-network
-
-  db:
-    build:
-      context: .
-      dockerfile: db/Dockerfile
-    container_name: db
-    # depends_on:
-    #   - postgres
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
     networks:
       - app-network
 
