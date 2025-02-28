@@ -274,7 +274,7 @@ export class BotService {
         const payload = paymentInfo.invoice_payload;
         const userId = ctx.chat.id
 
-        await ctx.reply(`Спасибо за оплату!`, { parse_mode: "MarkdownV2" });
+        await ctx.reply(`Спасибо за оплату!`);
         await ctx.reply('Генерируем подключение для вас');
 
         const config = await this.apiService.createConfig({
