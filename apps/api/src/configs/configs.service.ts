@@ -13,12 +13,26 @@ export class ConfigsService {
     expiryTime: number,
     email: string,
   ) {
-    const config = await xuiApi.addInbound({
+    const response = await xuiApi.addClientToInbound({
       expiryTime,
       email,
       tgId: email
     })
-    return config
+
+    if (response.success) {
+      const inbound = await xuiApi.getClients()
+
+      // const { settings } = inbound.obj;
+      // const client = JSON.parse(settings).clients.find(client => client.email === email)
+
+      // const config = {
+      //   obj: {
+      //     settings: client
+      //   }
+      // }
+      // console.log({config})
+      return inbound
+    }
   }
 
   parseVlessUrl(vlessUrl: string): VlessConfig {
@@ -112,17 +126,33 @@ export class ConfigsService {
     return [];
   }
 
+  generateRandomEmail(): string {
+    const chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
+    const domains: string[] = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
+
+    const length: number = Math.floor(Math.random() * 10) + 5; // длина от 5 до 15 символов
+    let email = '';
+
+    for(let i = 0; i < length; i++) {
+      email += chars[Math.floor(Math.random() * chars.length)];
+    }
+
+    const domain = domains[Math.floor(Math.random() * domains.length)];
+    return `${email}@${domain}`;
+  }
+
   async create(createConfigDto: CreateConfigDto) {
     const expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000
-    const config: any = await this.generateConfig(expiryTime, createConfigDto.email);
-    const vlessUrl = this.getVlessLinks(config);
+    const email = this.generateRandomEmail()
+    const config: any = await this.generateConfig(expiryTime, email);
+    const vlessUrls = this.getVlessLinks(config);
 
     return this.prisma.config.create({
       data: {
         userId: String(createConfigDto.userId),
         name: createConfigDto.name,
-        config: JSON.stringify(config.obj),
-        vlessUrl: vlessUrl[0]
+        config: JSON.stringify(config),
+        vlessUrl: vlessUrls.find(url => url.includes(email)),
       }
     });
   }
@@ -142,8 +172,8 @@ export class ConfigsService {
     return this.prisma.config.findMany({ where: {userId} });
   }
 
-  findOne(userId: string, id: string) {
-    return this.prisma.config.findUnique({ where: { id, userId } });
+  findOne(id: string) {
+    return this.prisma.config.findUnique({ where: { id } });
   }
 
   remove(id: string) {

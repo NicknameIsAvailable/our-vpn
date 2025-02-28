@@ -1,10 +1,11 @@
+import { IsString } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
-import { firstValueFrom } from 'rxjs';
 import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
 import { randomUUID } from 'crypto';
 import { ApiService } from '../api/api.service';
+import moment from "moment"
 
 @Injectable()
 export class BotService {
@@ -15,7 +16,128 @@ export class BotService {
   ) {
     const botName = process.env.BOT_NAME;
 
-    this.bot.start((ctx) => ctx.reply('Привет!'));
+    this.bot.start(async (ctx) => {
+      await ctx.reply(
+        `👋 Привет! Я *${botName}* — твой личный помощник по VPN. Вот что я умею:\n\n` +
+          `🚀 /subscribe — Купить подписку\n` +
+          `🛠 /help — Гайд по настройке VPN\n` +
+          `🔑 /configs — Список конфигов\n`,
+        {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [[{ text: "Открыть панель управления", callback_data: "open_menu" }]],
+          },
+        }
+      );
+    });
+
+    this.bot.command("menu", async (ctx) => {
+      await ctx.reply("📜 Панель управления", {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "⚙ Получить конфиги", callback_data: "get_configs" }],
+            [{ text: "💳 Подписка", callback_data: "subscribe_command" }],
+            [{ text: "🆘 Поддержка", url: "https://t.me/support" }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
+          ]
+        }
+      });
+    });
+
+    this.bot.action("subscribe_command", async (ctx) => {
+      await ctx.answerCbQuery();
+
+      const chat = ctx.update.callback_query.message?.chat;
+      if (!chat || chat.type === "channel") {
+        return;
+      }
+
+      await this.bot.handleUpdate({
+        update_id: ctx.update.update_id,
+        message: {
+          message_id: ctx.update.callback_query.message?.message_id || 0,
+          from: ctx.update.callback_query.from,
+          chat,
+          date: Math.floor(Date.now() / 1000),
+          text: "/subscribe",
+          entities: [{ offset: 0, length: 10, type: "bot_command" }],
+        },
+      });
+    });
+
+    this.bot.action("guide", async (ctx) => {
+      await ctx.answerCbQuery();
+
+      const chat = ctx.update.callback_query.message?.chat;
+      if (!chat || chat.type === "channel") {
+        return;
+      }
+
+      await this.bot.handleUpdate({
+        update_id: ctx.update.update_id,
+        message: {
+          message_id: ctx.update.callback_query.message?.message_id || 0,
+          from: ctx.update.callback_query.from,
+          chat,
+          date: Math.floor(Date.now() / 1000),
+          text: "/help",
+          entities: [{ offset: 0, length: 5, type: "bot_command" }],
+        },
+      });
+    });
+
+    this.bot.action("get_configs", async (ctx) => {
+      await ctx.answerCbQuery();
+      const {chat} = ctx
+      const configs = await this.apiService.getUserConfigs(String(chat.id))
+      if (configs.length === 0) {
+        ctx.reply("У вас еще нет конфигов", {
+          reply_markup: {
+            inline_keyboard: [
+              [{
+                text: "Подписаться",
+                callback_data: "subscribe_command"
+              }]
+            ]
+          }
+        })
+      }
+      const escapeMarkdownV2 = (text: string) => {
+        return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, '\\$1');
+      };
+
+      const formattedConfigs = configs.map(config => {
+        const parsedConfig = typeof config.config === "string" ? JSON.parse(config.config) : config.config;
+        const expiryTime = parsedConfig?.expiryTime
+          ? moment(parsedConfig.expiryTime).format("DD.MM.YYYY HH:mm")
+          : "Не указано";
+
+        return `*${escapeMarkdownV2(config.name)}* \nДата окончания: ${escapeMarkdownV2(expiryTime)} *Ссылка для подключения:*\n\`\`\`\n${escapeMarkdownV2(config.vlessUrl)}\n\`\`\`\n`;
+      });
+
+      await ctx.reply("⚙ Ваши конфиги:");
+      formattedConfigs.forEach(async config => await ctx.reply(config, { parse_mode: "MarkdownV2" }));
+    });
+
+    this.bot.action("open_menu", async (ctx) => {
+      await ctx.answerCbQuery();
+
+      const chat = ctx.update.callback_query.message?.chat;
+      if (!chat || chat.type === "channel") {
+        return;
+      }
+
+      await this.bot.handleUpdate({
+        update_id: ctx.update.update_id,
+        message: {
+          message_id: ctx.update.callback_query.message?.message_id || 0,
+          from: ctx.update.callback_query.from,
+          chat,
+          date: Math.floor(Date.now() / 1000),
+          text: "/menu",
+          entities: [{ offset: 0, length: 5, type: "bot_command" }],
+        },
+      });
+    });
 
     this.bot.command("help", async (ctx) => {
       try {
@@ -150,14 +272,12 @@ export class BotService {
       try {
         const paymentInfo = ctx.message.successful_payment;
         const payload = paymentInfo.invoice_payload;
-        const email = paymentInfo.order_info?.email || 'не указан';
         const userId = ctx.chat.id
 
         await ctx.reply(`Спасибо за оплату!`, { parse_mode: "MarkdownV2" });
         await ctx.reply('Генерируем подключение для вас');
 
         const config = await this.apiService.createConfig({
-          email,
           userId,
           months: this.getSubscriptionLength(payload),
           name: `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`
