@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: mydb
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
 
   db:
     build:
@@ -20,6 +22,8 @@ services:
     #   - postgres
     environment:
       DATABASE_URL: ${DATABASE_URL}
+    networks:
+      - app-network
 
   api:
     build:
@@ -36,6 +40,8 @@ services:
       API_TOKEN: ${API_TOKEN}
     ports:
       - "${API_PORT}:${API_PORT}"
+    networks:
+      - app-network
 
   tg-bot:
     build:
@@ -51,6 +57,8 @@ services:
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       TELEGROM_BOT_API_TOKEN: ${TELEGROM_BOT_API_TOKEN}
       TELEGRAM_PAYMENT_TOKEN: ${TELEGRAM_PAYMENT_TOKEN}
+    networks:
+      - app-network
 
 networks:
   app-network:

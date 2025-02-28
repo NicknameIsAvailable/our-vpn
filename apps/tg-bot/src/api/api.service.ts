@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { Config } from '@prisma/client';
 
 @Injectable()
 export class ApiService {
@@ -19,22 +20,24 @@ export class ApiService {
     }
   }
 
-  async getUserConfigs(token: string) {
+  async getUserConfigs(userId: string): Promise<Config[]> {
     const url = `${this.apiUrl}/v1/configs`;
     try {
       const response = await firstValueFrom(
         this.httpService.get(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          params: {
+            userId
+          }
         })
       );
-      return response.data;
+      return response.data as Config[];
     } catch (error) {
       console.error('Ошибка получения конфигураций', error);
       return [];
     }
   }
 
-  async createConfig(configData: { name: string; userId: number, months: number; email: string }) {
+  async createConfig(configData: { name: string; userId: number, months: number; }) {
     const url = `${this.apiUrl}/v1/configs`;
     try {
       const response = await firstValueFrom(

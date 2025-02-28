@@ -33,109 +33,45 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-async function addInbound(data: { expiryTime: number; email: string; tgId: string }) {
+function generateRandomNumber() {
+  return Math.floor(10000 + Math.random() * 90000);
+}
+
+async function addClientToInbound(data: { expiryTime: number; email: string; tgId: string }) {
   try {
     const cookies = await login();
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
 
-    const id = randomUUID();
-
-    const body: InboundRequest = {
-      up: 0,
-      down: 0,
-      total: 0,
-      remark: "main",
+    // Создаем нового клиента
+    const newClient = {
+      comment: `Наш ВПН ${data.email}`,
+      email: data.email,
       enable: true,
-      expiryTime: data.expiryTime || 0,
-      listen: "",
-      port: 443,
-      protocol: "vless",
-      settings: JSON.stringify({
-        clients: [
-          {
-            comment: `Наш ВПН ${data.email}`,
-            email: data.email,
-            enable: true,
-            expiryTime: data.expiryTime,
-            flow: "xtls-rprx-vision",
-            id,
-            limitIp: 0,
-            reset: 0,
-            subId: generateRandomString(16),
-            tgId: "",
-            totalGB: 0
-          }
-        ],
-        decryption: "none",
-        fallbacks: [],
-      }),
-      streamSettings: JSON.stringify({
-        "network": "tcp",
-        "security": "reality",
-        "externalProxy": [],
-        "realitySettings": {
-          "show": false,
-          "xver": 0,
-          "dest": "google.com:443",
-          "serverNames": [
-            "google.com",
-            "www.google.com"
-          ],
-          "privateKey": "oB8rCQMBSuRxDJeWutUIRA6TEr_zC48ulwqLOXDN8Vw",
-          "minClient": "",
-          "maxClient": "",
-          "maxTimediff": 0,
-          "shortIds": [
-            "eec856f490",
-            "875f",
-            "caa09348",
-            "b2e518cfc1aad1",
-            "f4f4021aaa4f",
-            "7b",
-            "d7267a",
-            "dc50c1916ab8ceab"
-          ],
-          "settings": {
-            "publicKey": "d6Jr4DR9B4eQiVsrox9lbZ8FSrnEM8WMkvo9gNuI7GQ",
-            "fingerprint": "chrome",
-            "serverName": "",
-            "spiderX": "/"
-          }
-        },
-        "tcpSettings": {
-          "acceptProxyProtocol": false,
-          "header": {
-            "type": "none"
-          }
-        }
-      }),
-      tag: `inbound-${id}`,
-      sniffing: JSON.stringify({
-        "enabled": false,
-        "destOverride": [
-          "http",
-          "tls",
-          "quic",
-          "fakedns"
-        ],
-        "metadataOnly": false,
-        "routeOnly": false
-      }),
-      allocate: JSON.stringify({
-        "strategy": "always",
-        "refresh": 5,
-        "concurrency": 3
-      }),
+      expiryTime: data.expiryTime,
+      flow: "xtls-rprx-vision",
+      id: randomUUID(), // Генерация уникального ID для нового клиента
+      limitIp: 0,
+      reset: 0,
+      subId: generateRandomString(16),
+      tgId: "", // Используем переданный tgId
+      totalGB: 0
     };
 
-    const response = await api.post<InboundResponse>("/panel/api/inbounds/add", body, {
+    // Отправляем запрос на добавление клиента в существующий инбаунд
+    const response = await api.post<InboundResponse>("/panel/api/inbounds/addClient", {
+      id: 2,
+      settings: JSON.stringify({
+        clients: [newClient]
+      })
+    }, {
       headers: {
         "Cookie": cookies
       }
     });
 
+    console.log("XUI Api: ", response);
     return response.data;
   } catch (error) {
     console.log({ error });
@@ -143,14 +79,14 @@ async function addInbound(data: { expiryTime: number; email: string; tgId: strin
   }
 }
 
-async function getInbounds() {
+async function getClients() {
   try {
     const cookies = await login();
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
 
-    const response = await api.get("/panel/api/inbounds/list", {
+    const response = await api.get("/panel/api/inbounds/get/2", {
       headers: {
         "Cookie": cookies
       }
@@ -164,7 +100,7 @@ async function getInbounds() {
 }
 
 export const xuiApi = {
-  addInbound,
-  getInbounds,
+  addClientToInbound,
+  getClients,
   login,
 };
