@@ -1,11 +1,10 @@
-import { IsString } from 'class-validator';
 import { Injectable } from '@nestjs/common';
 import { Context, Telegraf } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
 import { randomUUID } from 'crypto';
 import { ApiService } from '../api/api.service';
-import moment from "moment"
+import { escapeMarkdownV2, getConfigs } from './functions';
 
 @Injectable()
 export class BotService {
@@ -15,29 +14,34 @@ export class BotService {
     private readonly apiService: ApiService,
   ) {
     const botName = process.env.BOT_NAME;
+    const supportUrl = process.env.TELEGRAM_SUPPORT_URL
 
     this.bot.start(async (ctx) => {
       await ctx.reply(
-        `👋 Привет! Я *${botName}* — твой личный помощник по VPN. Вот что я умею:\n\n` +
-          `🚀 /subscribe — Купить подписку\n` +
-          `🛠 /help — Гайд по настройке VPN\n` +
-          `🔑 /configs — Список конфигов\n`,
+        `👋 Привет! Я *${botName}* — твой личный супер-помощник по VPN. 👨‍💻🚀
+        Я готов помочь тебе с подключением и настройкой. Вот что я умею:\n\n` +
+        `⚡ /subscribe — Купи подписку и получи доступ к VPN 🔒\n` +
+        `🛠 /help — Гайд по настройке VPN. Всё, что нужно знать! 📖\n` +
+        `🔑 /configs — Посмотри свой список конфигов и настрой их на устройствах 📱💻\n\n` +
+        `👇 Нажми на кнопку, чтобы попасть в панель управления. Все настройки в одном месте! ⚙️`,
         {
           parse_mode: "Markdown",
           reply_markup: {
-            inline_keyboard: [[{ text: "Открыть панель управления", callback_data: "open_menu" }]],
+            inline_keyboard: [
+              [{ text: "🎛 Открыть панель управления", callback_data: "open_menu" }]
+            ],
           },
         }
       );
     });
 
     this.bot.command("menu", async (ctx) => {
-      await ctx.reply("📜 Панель управления", {
+      await ctx.reply("📋 Панель управления 💼 \n Ты в главном меню! 🔧 \n Здесь ты можешь настроить всё, что нужно, и получить доступ ко всем важным функциям. 👨‍💻", {
         reply_markup: {
           inline_keyboard: [
             [{ text: "⚙ Получить конфиги", callback_data: "get_configs" }],
             [{ text: "💳 Подписка", callback_data: "subscribe_command" }],
-            [{ text: "🆘 Поддержка", url: "https://t.me/support" }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
+            [{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
           ]
         }
       });
@@ -87,35 +91,7 @@ export class BotService {
 
     this.bot.action("get_configs", async (ctx) => {
       await ctx.answerCbQuery();
-      const {chat} = ctx
-      const configs = await this.apiService.getUserConfigs(String(chat.id))
-      if (configs.length === 0) {
-        ctx.reply("У вас еще нет конфигов", {
-          reply_markup: {
-            inline_keyboard: [
-              [{
-                text: "Подписаться",
-                callback_data: "subscribe_command"
-              }]
-            ]
-          }
-        })
-      }
-      const escapeMarkdownV2 = (text: string) => {
-        return text.replace(/([_*[\]()~`>#+\-=|{}.!])/g, '\\$1');
-      };
-
-      const formattedConfigs = configs.map(config => {
-        const parsedConfig = typeof config.config === "string" ? JSON.parse(config.config) : config.config;
-        const expiryTime = parsedConfig?.expiryTime
-          ? moment(parsedConfig.expiryTime).format("DD.MM.YYYY HH:mm")
-          : "Не указано";
-
-        return `*${escapeMarkdownV2(config.name)}* \nДата окончания: ${escapeMarkdownV2(expiryTime)} *Ссылка для подключения:*\n\`\`\`\n${escapeMarkdownV2(config.vlessUrl)}\n\`\`\`\n`;
-      });
-
-      await ctx.reply("⚙ Ваши конфиги:");
-      formattedConfigs.forEach(async config => await ctx.reply(config, { parse_mode: "MarkdownV2" }));
+      await getConfigs(ctx, this.apiService)
     });
 
     this.bot.action("open_menu", async (ctx) => {
@@ -141,9 +117,9 @@ export class BotService {
 
     this.bot.command("help", async (ctx) => {
       try {
-        const msg = await ctx.reply("Как пользоваться ВПН");
+        await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь! 💡");
 
-        await ctx.reply("Выберите свою операционную систему", {
+        await ctx.reply("🖥️ Выберите свою ОС: \n Какие у тебя предпочтения? 🤔 Мы тебе поможем с настройкой! 🚀", {
           reply_markup: {
             inline_keyboard: [
               ...osList.map(os => ([{
@@ -158,7 +134,7 @@ export class BotService {
           const osKey = (ctx.callbackQuery as any).data;
 
           if (osKey === "back_to_start") {
-            await ctx.editMessageText("Как пользоваться ВПН");
+            await ctx.editMessageText("📖 Как пользоваться ВПН:");
             await ctx.editMessageReplyMarkup({
               inline_keyboard: [
                 ...osList.map(os => ([{
@@ -180,22 +156,32 @@ export class BotService {
               callback_data: client.key,
             }]));
 
-            await ctx.editMessageText(
-              `Выберите свой VPN клиент для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только клиенты из списка ниже:`,
-              {
-                parse_mode: "Markdown",
-                reply_markup: {
-                  inline_keyboard: [
-                    ...formattedClients,
-                    [{ text: "Назад", callback_data: "back_to_start" }]
-                  ],
-                },
-              }
-            );
+            if (currentClients.length > 0)
+              await ctx.editMessageText(
+                `Выберите свой VPN клиент для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только клиенты из списка ниже: \n 🔐 Вот список поддерживаемых клиентов 🔧`,
+                {
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      ...formattedClients,
+                      [{ text: "Назад", callback_data: "back_to_start" }]
+                    ],
+                  },
+                }
+              );
+            else {
+              await ctx.editMessageText(`Мы еще не составили инструкций для *${currentOs.name}* 😟 \n Попробуйте погуглить, ${escapeMarkdownV2("что-то")} типа _VLess клиент для ${currentOs.key} инструкция_`, {parse_mode: "MarkdownV2", reply_markup: {
+                inline_keyboard: [
+                  ...formattedClients,
+                  [{ text: "Назад", callback_data: "back_to_start" }]
+                ],
+              }})
+            }
+
             await ctx.answerCbQuery();
           } else {
             await ctx.answerCbQuery();
-            await ctx.reply("Ошибка выбора ОС");
+            await ctx.reply("⚠️ Ошибка выбора ОС!");
           }
         });
 
@@ -221,6 +207,31 @@ export class BotService {
       }
     });
 
+    this.bot.command('configs', async (ctx) => {
+      await getConfigs(ctx, this.apiService)
+    })
+
+    this.bot.action("help", async (ctx) => {
+      await ctx.answerCbQuery();
+
+      const chat = ctx.update.callback_query.message?.chat;
+      if (!chat || chat.type === "channel") {
+        return;
+      }
+
+      await this.bot.handleUpdate({
+        update_id: ctx.update.update_id,
+        message: {
+          message_id: ctx.update.callback_query.message?.message_id || 0,
+          from: ctx.update.callback_query.from,
+          chat,
+          date: Math.floor(Date.now() / 1000),
+          text: "/help",
+          entities: [{ offset: 0, length: 5, type: "bot_command" }],
+        },
+      });
+    });
+
     this.bot.command("subscribe", async (ctx) => {
       try {
         const paymentId = randomUUID();
@@ -241,7 +252,7 @@ export class BotService {
 
         for (const price of prices) {
           await ctx.replyWithInvoice({
-            title: `${price.label} подписки`,
+            title: price.label,
             description: `${price.amount / 100} RUB за подписку`,
             payload: `vpn_${price.key}_${paymentId}`,
             provider_token: this.providerToken,
@@ -254,8 +265,8 @@ export class BotService {
           });
         }
       } catch (error) {
-        console.error('Ошибка при выставлении счета:', error);
-        await ctx.reply('Произошла ошибка при обработке платежа. Попробуйте снова.');
+        console.error('⚠️ Ошибка при выставлении счета!', error);
+        await ctx.reply('⚠️ Ошибка при выставлении счета! \n Мы столкнулись с проблемой… 😕 \n Попробуйте снова через пару минут. ⏳');
       }
     });
 
@@ -264,7 +275,7 @@ export class BotService {
         await ctx.answerPreCheckoutQuery(true);
       } catch (error) {
         console.error('Ошибка предавторизации платежа:', error);
-        await ctx.reply('Ошибка при обработке платежа. Попробуйте снова.');
+        await ctx.reply('🚫 Ошибка предавторизации платежа! \n Подождите немного, возможно, есть проблемы с сервером. 💥');
       }
     });
 
@@ -272,10 +283,10 @@ export class BotService {
       try {
         const paymentInfo = ctx.message.successful_payment;
         const payload = paymentInfo.invoice_payload;
-        const userId = ctx.chat.id
+        const userId = ctx.chat.id;
 
-        await ctx.reply(`Спасибо за оплату!`);
-        await ctx.reply('Генерируем подключение для вас');
+        await ctx.reply(`💸 Спасибо за оплату! 🙏`);
+        await ctx.reply('Ваш платёж прошёл успешно! Мы уже генерируем подключение для вас! ⚡');
 
         const config = await this.apiService.createConfig({
           userId,
@@ -285,16 +296,32 @@ export class BotService {
 
         if (config) {
           await ctx.reply(
-            `Ваш конфиг готов:\n\`\`\`\n${config.vlessUrl}\n\`\`\`
-            \n [Не знаете, что делать дальше? Нажмите сюда](/help)`,
-            { parse_mode: "MarkdownV2" }
+            `🎉 Ваш конфиг готов:
+Вы можете подключиться прямо сейчас! 🚀
+Вот ваша ссылка: \n\`\`\`\n${config.vlessUrl}\n\`\`\` \n🔄 Что дальше? Нажми “Что делать дальше?” ниже! 👇`,
+            {
+              parse_mode: "MarkdownV2",
+              reply_markup: {
+                inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
+              }
+            }
           );
         } else {
-          await ctx.reply('Ошибка при генерации конфига. Свяжитесь с поддержкой.');
+          await ctx.reply('⚠️ Ошибка при генерации конфига. \n Похоже, возникла проблема… 😔 \n Свяжитесь с нашей поддержкой! 🆘 \n Мы вам поможем! 👨‍💻', {
+              reply_markup: {
+                inline_keyboard:
+                  [[{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]]
+              }
+            });
         }
       } catch (error) {
         console.error('Ошибка обработки успешного платежа:', error);
-        await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.');
+        await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
+              reply_markup: {
+                inline_keyboard:
+                  [[{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]]
+              }
+            });
       }
     });
 

@@ -37,25 +37,27 @@ function generateRandomNumber() {
   return Math.floor(10000 + Math.random() * 90000);
 }
 
-async function addClientToInbound(data: { expiryTime: number; email: string; tgId: string }) {
+async function addClientToInbound(data: { expiryTime: number; email: string; tgId: string; username: string }) {
   try {
     const cookies = await login();
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
 
-    // Создаем нового клиента
+    const id = randomUUID()
+    const botName = process.env["BOT_NAME"]
+
     const newClient = {
-      comment: `Наш ВПН ${data.email}`,
+      comment: `${botName} ${data.username}`,
       email: data.email,
       enable: true,
       expiryTime: data.expiryTime,
       flow: "xtls-rprx-vision",
-      id: randomUUID(), // Генерация уникального ID для нового клиента
+      id,
       limitIp: 0,
       reset: 0,
       subId: generateRandomString(16),
-      tgId: "", // Используем переданный tgId
+      tgId: "",
       totalGB: 0
     };
 
