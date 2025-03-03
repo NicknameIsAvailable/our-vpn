@@ -2,7 +2,10 @@
   "name": "@nash-vpn/source",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "migrate:postgres-local": "npx dotenv -e .env.local -- npx prisma migrate deploy --schema db/prisma/schema.prisma",
+    "migrate:postgres-prod": "npx dotenv -e .env.prod -- npx prisma migrate deploy --schema db/prisma/schema.prisma"
+  },
   "private": true,
   "dependencies": {
     "@nestjs/common": "^10.0.2",

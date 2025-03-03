@@ -18,21 +18,11 @@ export class ConfigsService {
       expiryTime,
       email,
       username,
-      tgId: email
+      tgId: ""
     })
 
     if (response.success) {
       const inbound = await xuiApi.getClients()
-
-      // const { settings } = inbound.obj;
-      // const client = JSON.parse(settings).clients.find(client => client.email === email)
-
-      // const config = {
-      //   obj: {
-      //     settings: client
-      //   }
-      // }
-      // console.log({config})
       return inbound
     }
   }
