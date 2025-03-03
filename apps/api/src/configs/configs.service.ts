@@ -12,10 +12,12 @@ export class ConfigsService {
   async generateConfig(
     expiryTime: number,
     email: string,
+    username: string
   ) {
     const response = await xuiApi.addClientToInbound({
       expiryTime,
       email,
+      username,
       tgId: email
     })
 
@@ -144,7 +146,7 @@ export class ConfigsService {
   async create(createConfigDto: CreateConfigDto) {
     const expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000
     const email = this.generateRandomEmail()
-    const config: any = await this.generateConfig(expiryTime, email);
+    const config: any = await this.generateConfig(expiryTime, email, createConfigDto.name);
     const vlessUrls = this.getVlessLinks(config);
 
     return this.prisma.config.create({
