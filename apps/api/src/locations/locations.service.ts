@@ -62,34 +62,13 @@ export class LocationsService {
       where: filters,
     });
 
-    const groupedByCountry = locations.reduce((acc, location) => {
-      const country = location.country;
-      if (!acc[country]) {
-        acc[country] = {
-          country,
-          count: 0,
-          locations: []
-        };
-      }
-      acc[country].count++;
-      acc[country].locations.push(location);
-      return acc;
-    }, {});
-
-    const result = Object.values(groupedByCountry).map((countryGroup: any) => {
-      const location = countryGroup.locations[0];
-      const coordinates = JSON.parse(location.coordinates);
-
-      return {
-        label: location.name,
-        country: location.country,
-        key: `${location.name} ${location.id}`,
-        amount: countryGroup.count,
-        location: coordinates,
-      };
-    });
-
-    return result;
+    return locations.map(location => ({
+      id: location.id,
+      name: location.name,
+      country: location.country,
+      city: location.city,
+      coordinates: JSON.parse(location.coordinates),
+    }));
   }
 
   async findOne(id: string) {

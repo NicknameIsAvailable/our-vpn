@@ -4,17 +4,19 @@ import { InjectBot } from 'nestjs-telegraf';
 import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
 import { randomUUID } from 'crypto';
 import { ApiService } from '../api/api.service';
-import { escapeMarkdownV2, getConfigs } from './functions';
+import { escapeMarkdownV2, getConfigs, getServers } from './functions';
+import { countryToEmoji } from 'functions/country-to-emoji';
 
 @Injectable()
 export class BotService {
   private readonly providerToken = process.env.TELEGRAM_PAYMENT_TOKEN
+  private readonly supportUrl = process.env.TELEGRAM_SUPPORT_URL;
   constructor(
     @InjectBot() private readonly bot: Telegraf<Context>,
     private readonly apiService: ApiService,
   ) {
     const botName = process.env.BOT_NAME;
-    const supportUrl = process.env.TELEGRAM_SUPPORT_URL
+    const isProd = process.env.PRODUCTION === "true";
 
     this.bot.start(async (ctx) => {
       await ctx.reply(
@@ -41,7 +43,7 @@ export class BotService {
           inline_keyboard: [
             [{ text: "⚙ Получить конфиги", callback_data: "get_configs" }],
             [{ text: "💳 Подписка", callback_data: "subscribe_command" }],
-            [{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
+            [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
           ]
         }
       });
@@ -209,7 +211,7 @@ export class BotService {
 
     this.bot.command('configs', async (ctx) => {
       await getConfigs(ctx, this.apiService)
-    })
+    });
 
     this.bot.action("help", async (ctx) => {
       await ctx.answerCbQuery();
@@ -234,35 +236,39 @@ export class BotService {
 
     this.bot.command("subscribe", async (ctx) => {
       try {
-        const paymentId = randomUUID();
+        if (isProd) {
+          const paymentId = randomUUID();
 
-        const generateProviderData = (price: LabeledPrice) => JSON.stringify({
-          receipt: {
-            items: [{
-              description: price.label,
-              quantity: 1,
-              amount: { value: price.amount / 100, currency: "RUB" },
-              vat_code: 1,
-              payment_mode: "full_payment",
-              payment_subject: "commodity"
-            }],
-            tax_system_code: 1
-          }
-        });
-
-        for (const price of prices) {
-          await ctx.replyWithInvoice({
-            title: price.label,
-            description: `${price.amount / 100} RUB за подписку`,
-            payload: `vpn_${price.key}_${paymentId}`,
-            provider_token: this.providerToken,
-            provider_data: generateProviderData(price),
-            send_email_to_provider: true,
-            currency: 'RUB',
-            prices: [price],
-            start_parameter: 'get_access',
-            need_email: true,
+          const generateProviderData = (price: LabeledPrice) => JSON.stringify({
+            receipt: {
+              items: [{
+                description: price.label,
+                quantity: 1,
+                amount: { value: price.amount / 100, currency: "RUB" },
+                vat_code: 1,
+                payment_mode: "full_payment",
+                payment_subject: "commodity"
+              }],
+              tax_system_code: 1
+            }
           });
+
+          for (const price of prices) {
+            await ctx.replyWithInvoice({
+              title: price.label,
+              description: `${price.amount / 100} RUB за подписку`,
+              payload: `vpn_${price.key}_${paymentId}`,
+              provider_token: this.providerToken,
+              provider_data: generateProviderData(price),
+              send_email_to_provider: true,
+              currency: 'RUB',
+              prices: [price],
+              start_parameter: 'get_access',
+              need_email: true,
+            });
+          }
+        } else {
+          this.generateConfig(ctx)
         }
       } catch (error) {
         console.error('⚠️ Ошибка при выставлении счета!', error);
@@ -280,50 +286,12 @@ export class BotService {
     });
 
     this.bot.on('successful_payment', async (ctx) => {
-      try {
-        const paymentInfo = ctx.message.successful_payment;
-        const payload = paymentInfo.invoice_payload;
-        const userId = ctx.chat.id;
-
-        await ctx.reply(`💸 Спасибо за оплату! 🙏`);
-        await ctx.reply('Ваш платёж прошёл успешно! Мы уже генерируем подключение для вас! ⚡');
-
-        const config = await this.apiService.createConfig({
-          userId,
-          months: this.getSubscriptionLength(payload),
-          name: `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`
-        });
-
-        if (config) {
-          await ctx.reply(
-            `🎉 Ваш конфиг готов:
-Вы можете подключиться прямо сейчас! 🚀
-Вот ваша ссылка: \n\`\`\`\n${config.vlessUrl}\n\`\`\` \n🔄 Что дальше? Нажми “Что делать дальше?” ниже! 👇`,
-            {
-              parse_mode: "MarkdownV2",
-              reply_markup: {
-                inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
-              }
-            }
-          );
-        } else {
-          await ctx.reply('⚠️ Ошибка при генерации конфига. \n Похоже, возникла проблема… 😔 \n Свяжитесь с нашей поддержкой! 🆘 \n Мы вам поможем! 👨‍💻', {
-              reply_markup: {
-                inline_keyboard:
-                  [[{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]]
-              }
-            });
-        }
-      } catch (error) {
-        console.error('Ошибка обработки успешного платежа:', error);
-        await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
-              reply_markup: {
-                inline_keyboard:
-                  [[{ text: "🆘 Поддержка", url: supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]]
-              }
-            });
-      }
+      this.generateConfig(ctx)
     });
+
+    this.bot.command('servers', async (ctx) => {
+      getServers(ctx, apiService)
+    })
 
     this.bot.command('auth', async (ctx) => {
       await ctx.reply('Введите ваш email:');
@@ -351,6 +319,93 @@ export class BotService {
         });
       });
     });
+
+    this.bot.on("callback_query", async (ctx) => {
+      const locations = await apiService.getLocations();
+      const data = (ctx.callbackQuery as any).data;
+      if (!data) return;
+
+      console.log({ data, locations });
+
+      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === data);
+      if (!selectedLocation) return;
+
+      let months = 1;
+      if (isProd) {
+        const paymentInfo = (ctx.message as any).successful_payment;
+        if (!paymentInfo) {
+          return await ctx.reply('⚠️ Оплата обязательна для использования сервиса.');
+        }
+        months = this.getSubscriptionLength(paymentInfo.invoice_payload);
+        await ctx.reply('💸 Спасибо за оплату! 🙏');
+      } else {
+        await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
+      }
+
+      const userId = ctx.chat.id;
+
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
+
+      const config = await this.apiService.createConfig({
+        userId,
+        months,
+        name: `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`,
+        locationId: selectedLocation.id
+      });
+
+      if (config) {
+        await ctx.reply(
+          `🎉 Ваш конфиг готов:
+      Вы можете подключиться прямо сейчас 🚀
+      Вот ваша ссылка: \n\`\`\`\n${config.vlessUrl}\n\`\`\` \n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
+          {
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
+            }
+          }
+        );
+      } else {
+        await ctx.reply('⚠️ Ошибка при генерации конфига. Свяжитесь с поддержкой.', {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
+            ]
+          }
+        });
+      }
+    });
+  }
+
+  async generateConfig(ctx: any) {
+    try {
+      const userId = ctx.chat.id;
+
+      const locations = await this.apiService.getLocations();
+      if (locations.length === 0) {
+        return await ctx.reply("⚠️ Нет доступных серверов.");
+      }
+
+      await ctx.reply("🌍 Выберите страну сервера:", {
+        reply_markup: {
+          inline_keyboard: locations.map(location => ([
+            {
+              text: `${countryToEmoji(location.country)} ${location.city}`,
+              callback_data: `choose_location_${location.id}`
+            }
+          ]))
+        }
+      });
+    } catch (error) {
+      console.error('Ошибка обработки подписки:', error);
+      await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
+          ]
+        }
+      });
+    }
   }
 
   getSubscriptionLength(payload: string): number {
