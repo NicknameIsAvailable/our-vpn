@@ -4,17 +4,19 @@ import { CreateConfigDto } from './dto/create-config.dto';
 import { PrismaService } from '@nash-vpn/db';
 import { CreateCustomConfigDto } from './dto/create-custom-config.dto';
 import { VlessConfig } from "types/vless"
+import { Location } from "@prisma/client";
 
 @Injectable()
 export class ConfigsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async generateConfig(
+    location: Location,
     expiryTime: number,
     email: string,
     username: string
   ) {
-    const response = await xuiApi.addClientToInbound({
+    const response = await xuiApi.addClientToInbound(location, {
       expiryTime,
       email,
       username,
@@ -22,12 +24,12 @@ export class ConfigsService {
     })
 
     if (response.success) {
-      const inbound = await xuiApi.getClients()
+      const inbound = await xuiApi.getClients(location)
       return inbound
     }
   }
 
-  parseVlessUrl(vlessUrl: string): VlessConfig {
+  private parseVlessUrl(vlessUrl: string): VlessConfig {
     const regex = /^vless:\/\/([a-f0-9-]{36})@([^:]+):(\d+)\?type=([a-z]+)&security=([a-z]+)&path=(.*)$/;
     const match = vlessUrl.match(regex);
 
@@ -90,7 +92,7 @@ export class ConfigsService {
     return config;
   }
 
-  getVlessLinks(config: InboundResponse): string[] {
+  private getVlessLinks(config: InboundResponse, location: Location): string[] {
     if (!config.obj) {
       return [];
     }
@@ -102,7 +104,7 @@ export class ConfigsService {
       const { port } = config.obj;
       const network = streamSettings.network;
       const security = streamSettings.security;
-      const serverAddress = process.env["XUI_HOST"];
+      const serverAddress = location.host;
 
       return settings.clients.map((client) => {
         const pbk = streamSettings.realitySettings.settings.publicKey;
@@ -118,7 +120,7 @@ export class ConfigsService {
     return [];
   }
 
-  generateRandomEmail(): string {
+  private generateRandomEmail(): string {
     const chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
     const domains: string[] = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
 
@@ -136,8 +138,10 @@ export class ConfigsService {
   async create(createConfigDto: CreateConfigDto) {
     const expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000
     const email = this.generateRandomEmail()
-    const config: any = await this.generateConfig(expiryTime, email, createConfigDto.name);
-    const vlessUrls = this.getVlessLinks(config);
+    const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } })
+
+    const config: any = await this.generateConfig(location, expiryTime, email, createConfigDto.name);
+    const vlessUrls = this.getVlessLinks(config, location);
 
     return this.prisma.config.create({
       data: {
@@ -145,19 +149,9 @@ export class ConfigsService {
         name: createConfigDto.name,
         config: JSON.stringify(config),
         vlessUrl: vlessUrls.find(url => url.includes(email)),
-      }
+        locationId: location.id,
+      },
     });
-  }
-
-  async createCustom(userId: string, dto: CreateCustomConfigDto) {
-    const config = this.parseVlessUrl(dto.url)
-    const data = await this.prisma.config.create({ data: {
-      userId,
-      vlessUrl: dto.url,
-      name: dto.name,
-      config: JSON.stringify(config),
-    }})
-    return data
   }
 
   async findAll(userId: string) {

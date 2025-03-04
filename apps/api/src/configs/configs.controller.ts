@@ -1,8 +1,6 @@
 import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException } from '@nestjs/common';
 import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
-import { CurrentUser } from '../auth/guards/decorators/user.decorator';
-import { CreateCustomConfigDto } from './dto/create-custom-config.dto';
 
 @Controller('configs')
 export class ConfigsController {
@@ -13,13 +11,6 @@ export class ConfigsController {
   async create(@Body() createConfigDto: CreateConfigDto) {
     const res = await this.configsService.create(createConfigDto)
 
-    return {...res, config: JSON.parse(String(res.config))};
-  }
-
-  @Post('custom')
-  // @Auth()
-  async createCustom(@CurrentUser('id') userId, @Body() createConfigDto: CreateCustomConfigDto) {
-    const res = await this.configsService.createCustom(userId, createConfigDto)
     return {...res, config: JSON.parse(String(res.config))};
   }
 

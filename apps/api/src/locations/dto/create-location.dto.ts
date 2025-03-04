@@ -3,8 +3,10 @@ export class CreateLocationDto {
   country: string;
   city: string;
   ip: string;
-  hostname: string;
-  isActive: boolean;
-  bandwidthLimit: number;
-  currentLoad: number;
+  coordinates: [number, number];
+  user: string;
+  url: string;
+  host: string;
+  port: number;
+  password: string;
 }
