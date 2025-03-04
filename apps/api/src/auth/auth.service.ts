@@ -35,7 +35,7 @@ export class AuthService {
     };
   }
 
-  @Auth()
+  // @Auth()
   async register(dto: RegistrationDto) {
     const oldUser = await this.userService.getByEmail(dto.email);
 
