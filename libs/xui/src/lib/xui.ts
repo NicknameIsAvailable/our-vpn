@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import api from "./api";
-import { InboundRequest, InboundResponse } from "./types";
+import { InboundResponse } from "./types";
 import { config } from "./config";
 
 async function login(): Promise<string | null> {
@@ -19,7 +19,7 @@ async function login(): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.log({ error });
+    console.log({ loginError: error });
     throw error;
   }
 }
@@ -39,25 +39,22 @@ async function addClientToInbound(data: { expiryTime: number; email: string; tgI
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
-
-    // Создаем нового клиента
     const newClient = {
-      comment: `Наш ВПН ${data.email}`,
+      comment: `${config.host} ${data.tgId}`,
       email: data.email,
       enable: true,
       expiryTime: data.expiryTime,
       flow: "xtls-rprx-vision",
-      id: randomUUID(), // Генерация уникального ID для нового клиента
+      id: randomUUID(),
       limitIp: 0,
       reset: 0,
       subId: generateRandomString(16),
-      tgId: "", // Используем переданный tgId
+      tgId: "",
       totalGB: 0
     };
 
-    // Отправляем запрос на добавление клиента в существующий инбаунд
     const response = await api.post<InboundResponse>("/panel/api/inbounds/addClient", {
-      id: 2,
+      id: 1,
       settings: JSON.stringify({
         clients: [newClient]
       })
@@ -67,7 +64,6 @@ async function addClientToInbound(data: { expiryTime: number; email: string; tgI
       }
     });
 
-    console.log("XUI Api: ", response);
     return response.data;
   } catch (error) {
     console.log({ error });
@@ -82,7 +78,7 @@ async function getClients() {
       throw new Error("Failed to login and get cookies");
     }
 
-    const response = await api.get("/panel/api/inbounds/get/2", {
+    const response = await api.get("/panel/api/inbounds/get/1", {
       headers: {
         "Cookie": cookies
       }

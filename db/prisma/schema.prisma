@@ -14,12 +14,10 @@ model Location {
   country        String
   city           String?
   ip             String
-  hostname       String
-  isActive       Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  bandwidthLimit Int?
-  currentLoad    Float?
+  url            String
+  host           String
+  port           Int
+  password       String
 }
 
 model User {
