@@ -11,6 +11,7 @@ import { verify } from 'argon2';
 import { RegistrationDto } from './dto/registration.dto';
 import { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
+import { Auth } from './guards/decorators/auth.decorator';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +35,7 @@ export class AuthService {
     };
   }
 
+  @Auth()
   async register(dto: RegistrationDto) {
     const oldUser = await this.userService.getByEmail(dto.email);
 
@@ -78,6 +80,7 @@ export class AuthService {
     return user;
   }
 
+  @Auth()
   async getNewTokens(refreshToken: string) {
     const result = await this.jwt.verifyAsync(refreshToken);
     if (!result) throw new UnauthorizedException('Invalid refresh token');
