@@ -9,15 +9,18 @@ datasource db {
 }
 
 model Location {
-  id             String    @id @default(uuid())
+  id             String   @id @default(uuid())
   name           String
   country        String
   city           String?
   ip             String
+  coordinates    String
+  user           String
   url            String
   host           String
   port           Int
   password       String
+  configs        Config[] @relation("LocationConfig")
 }
 
 model User {
@@ -31,6 +34,8 @@ model Config {
   id        String   @id @default(uuid())
   name      String
   userId    String
+  locationId String
+  location  Location @relation("LocationConfig", fields: [locationId], references: [id]) // Связь с моделью Location
   config    Json
   vlessUrl  String
   @@map("VlessConfig")

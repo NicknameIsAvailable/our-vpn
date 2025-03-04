@@ -5,7 +5,8 @@
   "scripts": {
     "migrate:postgres-local": "npx dotenv -e .env.local -- npx prisma migrate deploy --schema db/prisma/schema.prisma",
     "migrate:postgres-prod": "npx dotenv -e .env.prod -- npx prisma migrate deploy --schema db/prisma/schema.prisma",
-    "generate:postgres": "npx dotenv -e .env.local -- npx prisma generate --schema db/prisma/schema.prisma"
+    "generate:postgres": "npx dotenv -e .env.local -- npx prisma generate --schema db/prisma/schema.prisma",
+    "migrate:create": "npx dotenv -e .env.local -- npx prisma migrate dev --schema db/prisma/schema.prisma --create-only --name"
   },
   "private": true,
   "dependencies": {

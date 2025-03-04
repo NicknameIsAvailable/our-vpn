@@ -1,14 +1,16 @@
 import { randomUUID } from "crypto";
-import api from "./api";
 import { InboundResponse } from "./types";
-import { config } from "./config";
+import { Location } from "@prisma/client";
+import { generateApi } from "./api";
 
-async function login(): Promise<string | null> {
+async function login(location: Location): Promise<string | null> {
   try {
     const data = {
-      username: config.username,
-      password: config.password
+      username: location.user,
+      password: location.password
     };
+
+    const api = generateApi(location)
 
     const response = await api.post("/login", data);
 
@@ -33,14 +35,16 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-async function addClientToInbound(data: { expiryTime: number; email: string; tgId: string, username: string }) {
+async function addClientToInbound(location: Location, data: { expiryTime: number; email: string; tgId: string, username: string }) {
   try {
-    const cookies = await login();
+    const api = generateApi(location)
+
+    const cookies = await login(location);
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
     const newClient = {
-      comment: `${config.host} ${data.tgId}`,
+      comment: `${location.host} ${data.tgId}`,
       email: data.email,
       enable: true,
       expiryTime: data.expiryTime,
@@ -71,9 +75,11 @@ async function addClientToInbound(data: { expiryTime: number; email: string; tgI
   }
 }
 
-async function getClients() {
+async function getClients(location: Location) {
   try {
-    const cookies = await login();
+    const api = generateApi(location)
+
+    const cookies = await login(location);
     if (!cookies) {
       throw new Error("Failed to login and get cookies");
     }
