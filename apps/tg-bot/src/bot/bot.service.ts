@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Context, Telegraf } from 'telegraf';
+import { Context, MemorySessionStore, Telegraf, session } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
 import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
 import { randomUUID } from 'crypto';
@@ -7,16 +7,32 @@ import { ApiService } from '../api/api.service';
 import { escapeMarkdownV2, getConfigs, getServers } from './functions';
 import { countryToEmoji } from 'functions/country-to-emoji';
 
+interface BotSession {
+  locationMessageId?: number;
+  payment?: {
+    invoice_payload: string;
+    total_amount: number;
+    currency: string;
+  };
+}
+
+interface MyContext extends Context {
+  session: BotSession;
+}
+
 @Injectable()
 export class BotService {
   private readonly providerToken = process.env.TELEGRAM_PAYMENT_TOKEN
   private readonly supportUrl = process.env.TELEGRAM_SUPPORT_URL;
   constructor(
-    @InjectBot() private readonly bot: Telegraf<Context>,
+    @InjectBot() private readonly bot: Telegraf<MyContext>,
     private readonly apiService: ApiService,
   ) {
     const botName = process.env.BOT_NAME;
     const isProd = process.env.PRODUCTION === "true";
+
+    const store = new MemorySessionStore();
+    this.bot.use(session({ store }));
 
     this.bot.start(async (ctx) => {
       await ctx.reply(
@@ -285,8 +301,19 @@ export class BotService {
       }
     });
 
-    this.bot.on('successful_payment', async (ctx) => {
-      this.generateConfig(ctx)
+    this.bot.on("message", async (ctx: any) => {
+      if (!("successful_payment" in ctx.message)) return;
+
+      const paymentInfo = ctx.message.successful_payment;
+
+      ctx.session.payment = {
+        invoice_payload: paymentInfo.invoice_payload,
+        total_amount: paymentInfo.total_amount,
+        currency: paymentInfo.currency
+      };
+
+      await ctx.reply("💸 Оплата прошла успешно! Теперь выбери локацию для VPN.");
+      await this.generateConfig(ctx);
     });
 
     this.bot.command('servers', async (ctx) => {
@@ -321,28 +348,34 @@ export class BotService {
     });
 
     this.bot.on("callback_query", async (ctx) => {
-      const locations = await apiService.getLocations();
-      const data = (ctx.callbackQuery as any).data;
+      const userId = ctx.chat.id;
+      const locations = await this.apiService.getLocations();
+      const data = (ctx as any).callbackQuery?.data;
       if (!data) return;
-
-      console.log({ data, locations });
-
+      const messageId = ctx.callbackQuery.message.message_id;
       const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === data);
       if (!selectedLocation) return;
 
       let months = 1;
+
+      try {
+        await ctx.deleteMessage(messageId);
+      } catch (error) {
+        console.error('Ошибка при удалении сообщения:', error);
+      }
+
       if (isProd) {
-        const paymentInfo = (ctx.message as any).successful_payment;
+        const paymentInfo = (ctx as any).session?.payment;
+
         if (!paymentInfo) {
           return await ctx.reply('⚠️ Оплата обязательна для использования сервиса.');
         }
+
         months = this.getSubscriptionLength(paymentInfo.invoice_payload);
         await ctx.reply('💸 Спасибо за оплату! 🙏');
       } else {
         await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
       }
-
-      const userId = ctx.chat.id;
 
       await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
 
@@ -356,8 +389,8 @@ export class BotService {
       if (config) {
         await ctx.reply(
           `🎉 Ваш конфиг готов:
-      Вы можете подключиться прямо сейчас 🚀
-      Вот ваша ссылка: \n\`\`\`\n${config.vlessUrl}\n\`\`\` \n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
+          Вы можете подключиться прямо сейчас 🚀
+          Вот ваша ссылка: \n\`\`\`\n${config.vlessUrl}\n\`\`\` \n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
           {
             parse_mode: "MarkdownV2",
             reply_markup: {
@@ -377,16 +410,14 @@ export class BotService {
     });
   }
 
-  async generateConfig(ctx: any) {
+  async generateConfig(ctx: MyContext) {
     try {
-      const userId = ctx.chat.id;
-
       const locations = await this.apiService.getLocations();
       if (locations.length === 0) {
         return await ctx.reply("⚠️ Нет доступных серверов.");
       }
 
-      await ctx.reply("🌍 Выберите страну сервера:", {
+      const message = await ctx.reply("🌍 Выберите страну сервера:", {
         reply_markup: {
           inline_keyboard: locations.map(location => ([
             {
@@ -396,6 +427,14 @@ export class BotService {
           ]))
         }
       });
+
+      // Сохраняем ID сообщения прямо в контексте
+      if (!ctx.session) {
+        ctx.session = { locationMessageId: message.message_id };
+      } else {
+        ctx.session.locationMessageId = message.message_id;
+      }
+
     } catch (error) {
       console.error('Ошибка обработки подписки:', error);
       await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
