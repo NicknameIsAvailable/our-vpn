@@ -306,10 +306,13 @@ export class BotService {
 
       const paymentInfo = ctx.message.successful_payment;
 
-      ctx.session.payment = {
-        invoice_payload: paymentInfo.invoice_payload,
-        total_amount: paymentInfo.total_amount,
-        currency: paymentInfo.currency
+      ctx.session = {
+        ...ctx.session,
+        payment: {
+          invoice_payload: paymentInfo.invoice_payload,
+          total_amount: paymentInfo.total_amount,
+          currency: paymentInfo.currency
+        }
       };
 
       await ctx.reply("💸 Оплата прошла успешно! Теперь выбери локацию для VPN.");
