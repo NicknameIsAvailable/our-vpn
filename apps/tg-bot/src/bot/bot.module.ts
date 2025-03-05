@@ -7,7 +7,7 @@ import { ApiModule } from '../api/api.module';
 @Module({
   imports: [
     TelegrafModule.forRoot({
-      token: process.env.TELEGRAM_BOT_TOKEN
+      token: process.env.TELEGRAM_BOT_TOKEN,
     }),
     ApiModule,
   ],
