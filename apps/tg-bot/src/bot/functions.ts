@@ -119,6 +119,9 @@ export class BotFunctions {
     if (text === "⚙ Получить ссылки для подключения" || text.includes("/configs")) {
       await this.getConfigs(ctx as any);
     }
+    else if (text.includes("/menu")) {
+      await this.openMenu(ctx as any)
+    }
     else if (text === "💳 Подписка" || text.includes("/subscribe")) {
       await this.handleSubscribe(ctx as any);
     }
@@ -162,11 +165,15 @@ export class BotFunctions {
   async handleCallbackQuery(ctx: Context) {
     try {
       const callbackData = (ctx.callbackQuery as any).data;
-      console.log('Received callback data:', callbackData); // для отладки
+      console.log('Received callback data:', callbackData);
 
       if (!callbackData) return;
 
-      await ctx.answerCbQuery(); // Важно: всегда отвечать на callback query
+      await ctx.answerCbQuery();
+
+      if (callbackData === "open_menu") {
+        this.openMenu(ctx);
+      }
 
       if (callbackData === "back_to_start") {
         await ctx.editMessageText("📖 Как пользоваться ВПН:");
@@ -401,7 +408,7 @@ export class BotFunctions {
     }
   }
 
-  async openMenu(ctx: Context) {
+  openMenu = async (ctx: Context) => {
     await ctx.reply("📋 Панель управления 💼 \n Ты в главном меню! 🔧", {
       reply_markup: {
         keyboard: [
