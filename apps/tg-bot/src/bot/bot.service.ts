@@ -41,7 +41,7 @@ export class BotService {
         Я готов помочь тебе с подключением и настройкой. Вот что я умею:\n\n` +
         `⚡ /subscribe — Купи подписку и получи доступ к VPN 🔒\n` +
         `🛠 /help — Гайд по настройке VPN. Всё, что нужно знать! 📖\n` +
-        `🔑 /configs — Посмотри свой список конфигов и настрой их на устройствах 📱💻\n\n` +
+        `🔑 /connections — Посмотри свой список подключений и настрой их на устройствах 📱💻\n\n` +
         `👇 Нажми на кнопку, чтобы попасть в панель управления. Все настройки в одном месте! ⚙️`,
         {
           parse_mode: "Markdown",
@@ -100,82 +100,90 @@ export class BotService {
         return;
       }
 
-      if (osList.some(os => os.key === data)) {
-        const osKey = data;
-        const currentOs = osList.find(os => os.key === osKey);
+      if (data && data === "open_menu") {
+        await botFunctions.openMenu(ctx)
+        return;
+      }
 
-        if (currentOs) {
-          const currentClients = clients.filter(client => client.os === osKey);
+      if (data && data.startsWith("guide_")) {
+        if (osList.some(os => os.key === data)) {
+          const osKey = data;
+          const currentOs = osList.find(os => os.key === osKey);
 
-          if (currentClients.length > 0) {
-            const formattedClients = currentClients.map(client => ([{
-              text: client.name,
-              callback_data: client.key,
-            }]));
+          if (currentOs) {
+            const currentClients = clients.filter(client => client.os === osKey);
 
-            await ctx.editMessageText(
-              `Выберите свое VPN приложение для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только приложения из списка ниже: \n 🔐 Вот список поддерживаемых приложений 🔧`,
-              {
-                parse_mode: "Markdown",
-                reply_markup: {
-                  inline_keyboard: [
-                    ...formattedClients,
-                    [{ text: "Назад", callback_data: "back_to_start" }]
-                  ],
-                },
-              }
-            );
-          } else {
-            await ctx.editMessageText(`Для *${currentOs.name}* приложений не найдено 😟`);
-          }
-        } else {
-          await ctx.answerCbQuery();
-          await ctx.reply("⚠️ Ошибка выбора ОС!");
-        }
-      } else {
-        const clientKey = data;
-        const instruction = instructions.find(instr => instr.key === clientKey);
+            if (currentClients.length > 0) {
+              const formattedClients = currentClients.map(client => ([{
+                text: client.name,
+                callback_data: `guide_${client.key}`,
+              }]));
 
-        if (instruction) {
-          await ctx.editMessageText(
-            `📌 *Инструкция для ${instruction.key}*\n\n${instruction.text}\n\n🔗 [Скачать](${instruction.downloadLink})`,
-            { parse_mode: "MarkdownV2" }
-          );
-
-          for (const step of instruction.steps) {
-            try {
-              const media = [];
-
-              for (const image of step.images) {
-                const imagePath = path.resolve(process.cwd(), image);
-                if (fs.existsSync(imagePath)) {
-                  media.push({
-                    type: 'photo',
-                    media: { source: imagePath },
-                  });
+              await ctx.editMessageText(
+                `Выберите свое VPN приложение для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только приложения из списка ниже: \n 🔐 Вот список поддерживаемых приложений 🔧`,
+                {
+                  parse_mode: "Markdown",
+                  reply_markup: {
+                    inline_keyboard: [
+                      ...formattedClients,
+                      [{ text: "Назад", callback_data: "back_to_start" }]
+                    ],
+                  },
                 }
-              }
-
-              if (media.length > 0) {
-                media[0].caption = `${step.number}. *${step.name}*\n${step.text}`;
-                media[0].parse_mode = 'Markdown';
-
-                await ctx.replyWithMediaGroup(media);
-              } else {
-                await ctx.reply(
-                  `${step.number}. *${step.name}*\n${step.text}`,
-                  { parse_mode: "Markdown" }
-                );
-              }
-            } catch (error) {
-              console.error(`Error processing step ${step.number}:`, error);
+              );
+            } else {
+              await ctx.editMessageText(`Для *${currentOs.name}* приложений не найдено 😟`);
             }
+          } else {
+            await ctx.answerCbQuery();
+            await ctx.reply("⚠️ Ошибка выбора ОС!");
           }
-          await ctx.reply(escapeMarkdownV2("Поздравляем! Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
         } else {
-          await ctx.answerCbQuery();
-          await ctx.reply("Инструкция не найдена 😢");
+          const clientKey = data;
+          const instruction = instructions.find(instr => instr.key === clientKey);
+
+          if (instruction) {
+            await ctx.editMessageText(
+              `📌 *Инструкция для ${instruction.key}*\n\n${instruction.text}\n\n🔗 [Скачать](${instruction.downloadLink})`,
+              { parse_mode: "MarkdownV2" }
+            );
+
+            for (const step of instruction.steps) {
+              try {
+                const media = [];
+
+                for (const image of step.images) {
+                  const imagePath = path.resolve(process.cwd(), image);
+                  if (fs.existsSync(imagePath)) {
+                    media.push({
+                      type: 'photo',
+                      media: { source: imagePath },
+                    });
+                  }
+                }
+
+                if (media.length > 0) {
+                  media[0].caption = `${step.number}. *${step.name}*\n${step.text}`;
+                  media[0].parse_mode = 'Markdown';
+
+                  await ctx.replyWithMediaGroup(media);
+                } else {
+                  await ctx.reply(
+                    `${step.number}. *${step.name}*\n${step.text}`,
+                    { parse_mode: "Markdown" }
+                  );
+                }
+              } catch (error) {
+                console.error(`Error processing step ${step.number}:`, error);
+              }
+            }
+            await ctx.reply(escapeMarkdownV2("Поздравляем! Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
+          } else {
+            await ctx.answerCbQuery();
+            await ctx.reply("Инструкция не найдена 😢");
+          }
         }
+        return;
       }
 
       await ctx.answerCbQuery();
@@ -187,8 +195,6 @@ export class BotService {
     });
 
     this.bot.action("open_menu", async (ctx) => {
-      await ctx.answerCbQuery();
-
       const chat = ctx.update.callback_query.message?.chat;
       if (!chat || chat.type === "channel") {
         return;
