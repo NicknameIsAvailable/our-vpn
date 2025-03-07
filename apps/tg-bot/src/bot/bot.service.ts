@@ -105,9 +105,9 @@ export class BotService {
         return;
       }
 
-      if (data && data.startsWith("guide_")) {
-        if (osList.some(os => os.key === data)) {
-          const osKey = data;
+      if (data && data.startsWith("os_") || data.startsWith("guide_")) {
+        if (osList.some(os => `os_${os.key}` === data)) {
+          const osKey = data.replace("os_", "");
           const currentOs = osList.find(os => os.key === osKey);
 
           if (currentOs) {
@@ -139,7 +139,7 @@ export class BotService {
             await ctx.reply("⚠️ Ошибка выбора ОС!");
           }
         } else {
-          const clientKey = data;
+          const clientKey = data.replace("guide_", "");
           const instruction = instructions.find(instr => instr.key === clientKey);
 
           if (instruction) {

@@ -171,7 +171,7 @@ export class BotFunctions {
           inline_keyboard: [
             ...osList.map(os => ([{
               text: os.name,
-              callback_data: os.key,
+              callback_data: `os_${os.key}`,
             }])),
           ],
         },
