@@ -65,8 +65,6 @@ export class BotService {
       botFunctions.handleSubscribe(ctx)
     });
 
-    this.bot.action(/.*/, botFunctions.handleCallbackQuery.bind(this));
-
     this.bot.action("guide", async (ctx) => {
       await ctx.answerCbQuery();
 
