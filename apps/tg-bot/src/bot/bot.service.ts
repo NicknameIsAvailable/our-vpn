@@ -104,7 +104,7 @@ export class BotService {
             }]));
 
             await ctx.editMessageText(
-              `Выберите свой VPN клиент для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только клиенты из списка ниже: \n 🔐 Вот список поддерживаемых клиентов 🔧`,
+              `Выберите свое VPN приложение для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только приложения из списка ниже: \n 🔐 Вот список поддерживаемых приложений 🔧`,
               {
                 parse_mode: "Markdown",
                 reply_markup: {
@@ -116,7 +116,7 @@ export class BotService {
               }
             );
           } else {
-            await ctx.editMessageText(`Для *${currentOs.name}* клиентов не найдено 😟`);
+            await ctx.editMessageText(`Для *${currentOs.name}* приложений не найдено 😟`);
           }
         } else {
           await ctx.answerCbQuery();
@@ -201,7 +201,7 @@ export class BotService {
       botFunctions.showGuide(ctx)
     });
 
-    this.bot.command('configs', async (ctx) => {
+    this.bot.command('connections', async (ctx) => {
       await botFunctions.getConfigs(ctx)
     });
 
