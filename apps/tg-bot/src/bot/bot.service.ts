@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Context, MemorySessionStore, Telegraf, session } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
-import { LabeledPrice, prices } from '../assets/assets';
-import { randomUUID } from 'crypto';
+import { clients, instructions, osList } from '../assets/assets';
 import { ApiService } from '../api/api.service';
 import { BotFunctions } from './functions';
-import { countryToEmoji } from 'functions/country-to-emoji';
+import path from 'path';
+import fs from "fs"
+import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 interface BotSession {
   locationMessageId?: number;
@@ -84,6 +85,90 @@ export class BotService {
           entities: [{ offset: 0, length: 5, type: "bot_command" }],
         },
       });
+    });
+
+    this.bot.on("callback_query", async (ctx) => {
+      const data = (ctx.callbackQuery as any).data;
+
+      if (osList.some(os => os.key === data)) {
+        const osKey = data;
+        const currentOs = osList.find(os => os.key === osKey);
+
+        if (currentOs) {
+          const currentClients = clients.filter(client => client.os === osKey);
+
+          if (currentClients.length > 0) {
+            const formattedClients = currentClients.map(client => ([{
+              text: client.name,
+              callback_data: client.key,
+            }]));
+
+            await ctx.editMessageText(
+              `Выберите свой VPN клиент для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только клиенты из списка ниже: \n 🔐 Вот список поддерживаемых клиентов 🔧`,
+              {
+                parse_mode: "Markdown",
+                reply_markup: {
+                  inline_keyboard: [
+                    ...formattedClients,
+                    [{ text: "Назад", callback_data: "back_to_start" }]
+                  ],
+                },
+              }
+            );
+          } else {
+            await ctx.editMessageText(`Для *${currentOs.name}* клиентов не найдено 😟`);
+          }
+        } else {
+          await ctx.answerCbQuery();
+          await ctx.reply("⚠️ Ошибка выбора ОС!");
+        }
+      } else {
+        const clientKey = data;
+        const instruction = instructions.find(instr => instr.key === clientKey);
+
+        if (instruction) {
+          await ctx.editMessageText(
+            `📌 *Инструкция для ${instruction.key}*\n\n${instruction.text}\n\n🔗 [Скачать](${instruction.downloadLink})`,
+            { parse_mode: "MarkdownV2" }
+          );
+
+          for (const step of instruction.steps) {
+            try {
+              const media = [];
+
+              for (const image of step.images) {
+                const imagePath = path.resolve(process.cwd(), image);
+                if (fs.existsSync(imagePath)) {
+                  media.push({
+                    type: 'photo',
+                    media: { source: imagePath },
+                  });
+                }
+              }
+
+              if (media.length > 0) {
+                media[0].caption = `${step.number}. *${step.name}*\n${step.text}`;
+                media[0].parse_mode = 'Markdown';
+
+                await ctx.replyWithMediaGroup(media);
+              } else {
+                await ctx.reply(
+                  `${step.number}. *${step.name}*\n${step.text}`,
+                  { parse_mode: "Markdown" }
+                );
+              }
+            } catch (error) {
+              console.error(`Error processing step ${step.number}:`, error);
+            }
+          }
+          await ctx.reply(escapeMarkdownV2("Поздравляем! Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
+        } else {
+          await ctx.answerCbQuery();
+          await ctx.reply("Инструкция не найдена 😢");
+        }
+      }
+
+      await ctx.answerCbQuery();
     });
 
     this.bot.action("get_configs", async (ctx) => {
