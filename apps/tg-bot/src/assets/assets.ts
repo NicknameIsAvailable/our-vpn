@@ -1,3 +1,5 @@
+import path from "path";
+
 export enum OSKey {
   ANDROID = "android",
   IOS = "ios",
@@ -24,12 +26,14 @@ export enum ClientKey {
 
   // iOS
   V2RAY_TUN_IOS="V2RayTun ios",
+  HIDDIFY_IOS="Hiddify ios",
   SHADOWROCKET = "Shadowrocket",
   STASH = "Stash",
   SINGBOX_IOS = "sing-box ios",
 
   // Android
   V2RAYNG = "V2RayNG",
+  V2RAY_TUN_ANDROID="V2RayTun android",
   CLASH_ANDROID = "Clash for Android",
   SINGBOX_ANDROID = "sing-box android"
 }
@@ -56,7 +60,7 @@ export interface InstructionStep {
   number: number;
   name: string;
   text: string;
-  images: File[]
+  images: string[]
 }
 
 export interface LabeledPrice {
@@ -74,7 +78,8 @@ export const osList: Os[] = [
 ]
 
 export const clients: Client[] = [
-  // { name: "V2RayTun", key: ClientKey.V2RAY_TUN_MAC, os: OSKey.MAC },
+  { name: "V2RayTun", key: ClientKey.V2RAY_TUN_IOS, os: OSKey.IOS },
+  { name: "Hiddify Proxy & VPN", key: ClientKey.HIDDIFY_IOS, os: OSKey.IOS },
   // { name: "V2RayN", key: ClientKey.V2RAYN, os: OSKey.WINDOWS },
   // { name: "Clash for Windows", key: ClientKey.CLASHWIN, os: OSKey.WINDOWS },
   // { name: "V2RayX", key: ClientKey.V2RAYX, os: OSKey.MAC },
@@ -87,6 +92,7 @@ export const clients: Client[] = [
   // { name: "Stash", key: ClientKey.STASH, os: OSKey.IOS },
   // { name: "sing-box", key: ClientKey.SINGBOX_IOS, os: OSKey.IOS },
   { name: "V2RayNG", key: ClientKey.V2RAYNG, os: OSKey.ANDROID },
+  { name: "v2RayTun", key: ClientKey.V2RAY_TUN_ANDROID, os: OSKey.ANDROID },
   // { name: "Clash for Android", key: ClientKey.CLASH_ANDROID, os: OSKey.ANDROID },
   // { name: "sing-box", key: ClientKey.SINGBOX_ANDROID, os: OSKey.ANDROID }
 ];
@@ -101,13 +107,88 @@ export const instructions: Instruction[] = [
         number: 1,
         name: "Установка приложения",
         text: "Скачай V2RayNG из Google Play.",
-        images: []
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2rayng-android', 'step-1.png')]
       },
       {
         number: 2,
         name: "Добавление конфигурации",
         text: `- Открой приложение → нажми "+" → выбери "Scan QR Code" или "Import Config". \n - Введи ссылку VLess, полученную из бота.`,
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2rayng-android', 'step-2.png')]
+      },
+      {
+        number: 3,
+        name: "Подключение к VPN",
+        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
         images: []
+      },
+    ]
+  },
+  {
+    downloadLink: "https://play.google.com/store/apps/details?id=com.v2raytun.android&pcampaignid=web_share",
+    text: "v2RayTun",
+    key: ClientKey.V2RAY_TUN_ANDROID,
+    steps: [
+      {
+        number: 1,
+        name: "Установка приложения",
+        text: "Скачай V2RayTun из Google Play.",
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-android', 'step-1.png')]
+      },
+      {
+        number: 2,
+        name: "Добавление конфигурации",
+        text: `- Открой приложение → Нажми "+" → выбери "Import from URL" или "Scan QR Code" \n - Введи ссылку VLess, полученную из бота.`,
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-android', 'step-2.png')]
+      },
+      {
+        number: 3,
+        name: "Подключение к VPN",
+        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        images: []
+      },
+    ]
+  },
+  {
+    downloadLink: "https://apps.apple.com/ru/app/v2raytun/id6476628951",
+    text: "v2RayTun",
+    key: ClientKey.V2RAY_TUN_IOS,
+    steps: [
+      {
+        number: 1,
+        name: "Установка приложения",
+        text: "Скачай V2RayTun из App Store.",
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-ios', 'step-1.png')]
+      },
+      {
+        number: 2,
+        name: "Добавление конфигурации",
+        text: `- Нажми "+" → выбери  "Добавить из буфера" \n - Вставь ссылку VLess, полученную из бота в буфер обмена.`,
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-ios', 'step-2.png')]
+      },
+      {
+        number: 3,
+        name: "Подключение к VPN",
+        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        images: []
+      },
+    ]
+  },
+  {
+    downloadLink: "https://apps.apple.com/ru/app/hiddify-proxy-vpn/id6596777532",
+    text: "Hiddify Proxy & VPN",
+    key: ClientKey.HIDDIFY_IOS,
+    steps: [
+      {
+        number: 1,
+        name: "Установка приложения",
+        text: "Скачай Hiddify из App Store.",
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'hiddify-ios', 'step-1.png')]
+      },
+      {
+        number: 2,
+        name: "Добавление конфигурации",
+        text: `- Открой приложение \n- Нажми "+" → выбери "Добавить из буфера обмена" \n- Вставь VLess-ссылку или загрузи конфигурационный файл.`,
+        images: [path.join(process.cwd(), 'assets', 'instructions', 'hiddify-ios', 'step-2.png')]
       },
       {
         number: 3,
