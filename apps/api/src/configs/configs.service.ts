@@ -155,11 +155,34 @@ export class ConfigsService {
   }
 
   async findAll(userId: string) {
-    return this.prisma.config.findMany({ where: {userId} });
+    return this.prisma.config.findMany({
+      where: { userId },
+      include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            city: true,
+            coordinates: true
+          }
+        }
+      }
+    });
   }
 
   findOne(id: string) {
-    return this.prisma.config.findUnique({ where: { id } });
+    return this.prisma.config.findUnique({ where: { id }, include: {
+      location: {
+        select: {
+          id: true,
+          name: true,
+          country: true,
+          city: true,
+          coordinates: true
+        }
+      }
+    }});
   }
 
   remove(id: string) {
