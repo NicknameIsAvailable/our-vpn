@@ -38,6 +38,21 @@ export class ApiService {
     }
   }
 
+  async getConfigById(id: string): Promise<Config> {
+    const url = `${this.apiUrl}/v1/configs/${id}`
+    try {
+      const response = await firstValueFrom(
+        this.httpService.get(url, {
+          headers: { Authorization: `Bearer ${process.env.API_TOKEN}` },
+        })
+      )
+      return response.data
+    } catch (error) {
+      console.error('Ошибка при получении конфига: ', error)
+      return null
+    }
+  }
+
   async createConfig(configData: { name: string; userId: number, months: number; locationId: string; }) {
     const url = `${this.apiUrl}/v1/configs`;
     try {

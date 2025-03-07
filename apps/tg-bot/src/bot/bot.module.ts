@@ -3,6 +3,7 @@ import { BotService } from './bot.service';
 import { BotController } from './bot.controller';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { ApiModule } from '../api/api.module';
+import { BotFunctions } from './functions';
 
 @Module({
   imports: [
@@ -12,6 +13,6 @@ import { ApiModule } from '../api/api.module';
     ApiModule,
   ],
   controllers: [BotController],
-  providers: [BotService],
+  providers: [BotService, BotFunctions],
 })
 export class BotModule {}

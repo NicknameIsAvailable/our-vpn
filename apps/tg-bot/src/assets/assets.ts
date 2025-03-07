@@ -56,7 +56,7 @@ export interface InstructionStep {
   number: number;
   name: string;
   text: string;
-  imageUrls: string[]
+  images: File[]
 }
 
 export interface LabeledPrice {
@@ -74,7 +74,7 @@ export const osList: Os[] = [
 ]
 
 export const clients: Client[] = [
-  { name: "V2RayTun", key: ClientKey.V2RAY_TUN_MAC, os: OSKey.MAC }
+  // { name: "V2RayTun", key: ClientKey.V2RAY_TUN_MAC, os: OSKey.MAC },
   // { name: "V2RayN", key: ClientKey.V2RAYN, os: OSKey.WINDOWS },
   // { name: "Clash for Windows", key: ClientKey.CLASHWIN, os: OSKey.WINDOWS },
   // { name: "V2RayX", key: ClientKey.V2RAYX, os: OSKey.MAC },
@@ -86,13 +86,37 @@ export const clients: Client[] = [
   // { name: "Shadowrocket", key: ClientKey.SHADOWROCKET, os: OSKey.IOS },
   // { name: "Stash", key: ClientKey.STASH, os: OSKey.IOS },
   // { name: "sing-box", key: ClientKey.SINGBOX_IOS, os: OSKey.IOS },
-  // { name: "V2RayNG", key: ClientKey.V2RAYNG, os: OSKey.ANDROID },
+  { name: "V2RayNG", key: ClientKey.V2RAYNG, os: OSKey.ANDROID },
   // { name: "Clash for Android", key: ClientKey.CLASH_ANDROID, os: OSKey.ANDROID },
   // { name: "sing-box", key: ClientKey.SINGBOX_ANDROID, os: OSKey.ANDROID }
 ];
 
 export const instructions: Instruction[] = [
-
+  {
+    downloadLink: "https://play.google.com/store/apps/details?id=com.v2ray.ang&pcampaignid=web_share",
+    text: "V2RayNg",
+    key: ClientKey.V2RAYNG,
+    steps: [
+      {
+        number: 1,
+        name: "Установка приложения",
+        text: "Скачай V2RayNG из Google Play.",
+        images: []
+      },
+      {
+        number: 2,
+        name: "Добавление конфигурации",
+        text: `- Открой приложение → нажми "+" → выбери "Scan QR Code" или "Import Config". \n - Введи ссылку VLess, полученную из бота.`,
+        images: []
+      },
+      {
+        number: 3,
+        name: "Подключение к VPN",
+        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        images: []
+      },
+    ]
+  }
 ];
 
 export const prices: LabeledPrice[] = [
