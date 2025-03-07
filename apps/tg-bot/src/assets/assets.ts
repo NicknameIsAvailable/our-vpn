@@ -12,6 +12,7 @@ export enum ClientKey {
   // Windows
   V2RAYN = "V2RayN",
   CLASHWIN = "Clash for Windows",
+  HIDDIFY_WIN = "Hiddify windows",
 
   // macOS
   V2RAY_TUN_MAC="V2RayTun mac",
@@ -80,6 +81,7 @@ export const osList: Os[] = [
 export const clients: Client[] = [
   { name: "V2RayTun", key: ClientKey.V2RAY_TUN_IOS, os: OSKey.IOS },
   { name: "Hiddify Proxy & VPN", key: ClientKey.HIDDIFY_IOS, os: OSKey.IOS },
+  { name: "Hiddify Proxy & VPN", key: ClientKey.HIDDIFY_WIN, os: OSKey.WINDOWS },
   // { name: "V2RayN", key: ClientKey.V2RAYN, os: OSKey.WINDOWS },
   // { name: "Clash for Windows", key: ClientKey.CLASHWIN, os: OSKey.WINDOWS },
   // { name: "V2RayX", key: ClientKey.V2RAYX, os: OSKey.MAC },
@@ -194,6 +196,25 @@ export const instructions: Instruction[] = [
         number: 3,
         name: "Подключение к VPN",
         text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        images: []
+      },
+    ]
+  },
+  {
+    downloadLink: "https://hiddify.com/",
+    text: "Hiddify Proxy & VPN",
+    key: ClientKey.HIDDIFY_WIN,
+    steps: [
+      {
+        number: 1,
+        name: "Установка приложения",
+        text: "Скачай Hiddify с официального сайта",
+        images: []
+      },
+      {
+        number: 2,
+        name: "Установка приложения",
+        text: "😟 К сожалению, мы еще не успели расписать подробные шаги подключения к VPN через Hiddify. Но не растраивайтесь, скоро сделаем 😅. Вы справитесь! 💪 Там все просто",
         images: []
       },
     ]
