@@ -88,7 +88,17 @@ export class BotService {
     });
 
     this.bot.on("callback_query", async (ctx) => {
-      const data = (ctx.callbackQuery as any).data;
+      const data = (ctx as any).callbackQuery?.data;
+
+      if (data && data.startsWith("show_config_")) {
+        await botFunctions.showConfig(ctx)
+        return;
+      }
+
+      if (data && data.startsWith("choose_location_")) {
+        await botFunctions.chooseLocation(ctx)
+        return;
+      }
 
       if (osList.some(os => os.key === data)) {
         const osKey = data;
@@ -286,20 +296,6 @@ export class BotService {
           }
         });
       });
-    });
-
-    this.bot.on("callback_query", async (ctx) => {
-      const data = (ctx as any).callbackQuery?.data;
-
-      if (data && data.startsWith("show_config_")) {
-        await botFunctions.showConfig(ctx)
-        return;
-      }
-
-      if (data && data.startsWith("choose_location_")) {
-        await botFunctions.chooseLocation(ctx)
-        return;
-      }
     });
   }
 
