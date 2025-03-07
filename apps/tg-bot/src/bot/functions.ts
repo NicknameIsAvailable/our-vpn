@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 import { MyContext } from './bot.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { randomUUID } from 'crypto';
-import { clients, instructions, LabeledPrice, osList, prices } from '../assets/assets';
+import { LabeledPrice, osList, prices } from '../assets/assets';
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 
@@ -116,7 +116,7 @@ export class BotFunctions {
   ) {
     const text = ctx.message.text;
 
-    if (text === "⚙ Получить ссылки для подключения" || text.includes("/configs")) {
+    if (text === "⚙ Получить ссылки для подключения" || text.includes("/connections")) {
       await this.getConfigs(ctx as any);
     }
     else if (text.includes("/menu")) {
@@ -157,7 +157,7 @@ export class BotFunctions {
       },
     ]);
 
-    await ctx.reply("🔧 Ваши конфиги: \n 🎯 Все на месте, не переживай, брат! 👌", {
+    await ctx.reply("🔧 Ваши конфиги: \n", {
       reply_markup: { inline_keyboard: buttons },
     });
   };
