@@ -154,9 +154,9 @@ export class ConfigsService {
     });
   }
 
-  async findAll(userId: string) {
+  async findAll(userId?: string) {
     return this.prisma.config.findMany({
-      where: { userId },
+      where: userId ? { userId } : undefined,
       include: {
         location: {
           select: {
