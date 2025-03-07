@@ -1,5 +1,5 @@
 import { PrismaModule } from '@nash-vpn/db';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { LocationsModule } from '../locations/locations.module';
@@ -8,6 +8,7 @@ import { TelegramModule } from '../telegram/telegram.module';
 import { ConfigModule } from '@nestjs/config';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
+import { LoggerMiddleware } from '../logger/logger.middleware';
 
 @Module({
   imports: [
@@ -24,4 +25,8 @@ import { AuthModule } from '../auth/auth.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(LoggerMiddleware).forRoutes("*")
+  }
+}
