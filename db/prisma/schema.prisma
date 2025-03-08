@@ -31,12 +31,26 @@ model User {
 }
 
 model Config {
-  id        String   @id @default(uuid())
-  name      String
-  userId    String
-  locationId String
-  location  Location @relation("LocationConfig", fields: [locationId], references: [id]) // Связь с моделью Location
-  config    Json
-  vlessUrl  String
+  id          String   @id @default(uuid())
+  name        String
+  isTrial     Boolean @default(false)
+  userId      String
+  username    String
+  price       Int
+  promoCodeId String?
+  promoCode   PromoCode? @relation("PromoCodeConfig", fields: [ promoCodeId ], references: [ id ])
+  locationId  String
+  location    Location @relation("LocationConfig", fields: [locationId], references: [id])
+  config      Json
+  vlessUrl    String
   @@map("VlessConfig")
+}
+
+model PromoCode {
+  id              String @id @default(uuid())
+  code            String @unique
+  name            String
+  description     String
+  discountPercent Int
+  configs         Config[] @relation("PromoCodeConfig")
 }

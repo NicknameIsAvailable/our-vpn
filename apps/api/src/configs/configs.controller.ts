@@ -1,12 +1,16 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException, UseGuards } from '@nestjs/common';
 import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
+import { CheckUserTrialAccess } from './decorators/check-user-trial-access.decorator';
+import { CheckUserTrialAccessGuard } from './guards/check-user-trial-access/check-user-trial-access.guard';
 
 @Controller('configs')
 export class ConfigsController {
   constructor(private readonly configsService: ConfigsService) {}
 
   @Post()
+  @UseGuards(CheckUserTrialAccessGuard)
+  @CheckUserTrialAccess('userId')
   // @Auth()
   async create(@Body() createConfigDto: CreateConfigDto) {
     const res = await this.configsService.create(createConfigDto)
@@ -16,10 +20,6 @@ export class ConfigsController {
 
   @Get()
   async findAll(@Query("userId") userId?: string) {
-    if (!userId) {
-      throw new BadRequestException("userId is required");
-    }
-
     const res = await this.configsService.findAll(userId);
     return res;
   }

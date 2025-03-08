@@ -53,7 +53,7 @@ export class ApiService {
     }
   }
 
-  async createConfig(configData: { name: string; userId: number, months: number; locationId: string; }) {
+  async createConfig(configData: { name: string; userId: string, username: string, isTrial: boolean, price: number, promoCode: string, months: number; locationId: string; }) {
     const url = `${this.apiUrl}/v1/configs`;
     try {
       const response = await firstValueFrom(
@@ -64,7 +64,7 @@ export class ApiService {
       return response.data;
     } catch (error) {
       console.error('Ошибка создания конфига', error);
-      return null;
+      return error;
     }
   }
 

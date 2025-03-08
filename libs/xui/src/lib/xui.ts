@@ -37,6 +37,7 @@ function generateRandomString(length: number): string {
 
 async function addClientToInbound(location: Location, data: { expiryTime: number; email: string; tgId: string, username: string }) {
   try {
+    console.log({ location })
     const api = generateApi(location)
 
     const cookies = await login(location);

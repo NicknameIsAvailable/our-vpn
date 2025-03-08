@@ -1,7 +1,8 @@
+import { prices } from './../assets/assets';
 import { countryToEmoji } from 'functions/country-to-emoji';
 import { ApiService } from "../api/api.service";
 import { Context, Telegraf } from 'telegraf';
-import { Message, Update } from '@telegraf/types';
+import { InlineKeyboardButton, Message, Update } from '@telegraf/types';
 import { Config } from '@prisma/client';
 import moment from "moment";
 import fs from 'fs'
@@ -10,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 import { MyContext } from './bot.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { randomUUID } from 'crypto';
-import { LabeledPrice, osList, prices } from '../assets/assets';
+import { LabeledPrice, osList } from '../assets/assets';
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 
@@ -33,47 +34,65 @@ export class BotFunctions {
 
   async handleSubscribe(ctx: Context<Update.CallbackQueryUpdate>) {
     try {
-      if (this.isProd) {
-        const paymentId = randomUUID();
-
-        const generateProviderData = (price: LabeledPrice) => JSON.stringify({
-          receipt: {
-            items: [{
-              description: price.label,
-              quantity: 1,
-              amount: { value: price.amount / 100, currency: "RUB" },
-              vat_code: 1,
-              payment_mode: "full_payment",
-              payment_subject: "commodity"
-            }],
-            tax_system_code: 1
-          }
-        });
-
-        for (const price of prices) {
-          await ctx.replyWithInvoice({
-            title: price.label,
-            description: `${price.amount / 100} RUB за подписку`,
-            payload: `vpn_${price.key}_${paymentId}`,
-            provider_token: this.providerToken,
-            provider_data: generateProviderData(price),
-            send_email_to_provider: true,
-            currency: 'RUB',
-            prices: [price],
-            start_parameter: 'get_access',
-            need_email: true,
-          });
+      await ctx.reply("Выберите вариант подписки", {
+        reply_markup: {
+          inline_keyboard: prices.map((price) => ([
+            {
+              text: `${price.label} за ${price.amount / 100}₽`,
+              callback_data: `choose_price_${price.key}`
+            }
+          ]))
         }
-      } else {
-        this.generateConfig(ctx as MyContext)
-      }
+      })
     } catch (error) {
       console.error('⚠️ Ошибка при выставлении счета!', error);
       await ctx.reply('⚠️ Ошибка при выставлении счета! \n Мы столкнулись с проблемой… 😕 \n Попробуйте снова через пару минут. ⏳');
     }
   }
 
-  async generateConfig(ctx: MyContext) {
+  async handlePayment(ctx: MyContext, data: string) {
+    if (this.isProd) {
+      const price = prices.find(price => `choose_price_${price.key}` === data)
+
+      if (price.key === "trial") {
+        await this.chooseLocation(ctx)
+        return
+      }
+
+      const paymentId = randomUUID();
+
+      const generateProviderData = (price: LabeledPrice) => JSON.stringify({
+        receipt: {
+          items: [{
+            description: price.label,
+            quantity: 1,
+            amount: { value: price.amount / 100, currency: "RUB" },
+            vat_code: 1,
+            payment_mode: "full_payment",
+            payment_subject: "commodity"
+          }],
+          tax_system_code: 1
+        }
+      });
+
+      await ctx.replyWithInvoice({
+        title: price.label,
+        description: `${price.amount / 100} RUB за подписку`,
+        payload: `vpn_${price.key}_${paymentId}`,
+        provider_token: this.providerToken,
+        provider_data: generateProviderData(price),
+        send_email_to_provider: true,
+        currency: 'RUB',
+        prices: [price],
+        start_parameter: 'get_access',
+        need_email: true,
+      });
+    } else {
+      this.chooseLocation(ctx as MyContext)
+    }
+  }
+
+  async chooseLocation(ctx: MyContext) {
     try {
       const locations = await this.apiService.getLocations();
       if (locations.length === 0) {
@@ -257,69 +276,93 @@ export class BotFunctions {
     }
   }
 
-  async chooseLocation(ctx: Context) {
-    const userId = ctx.chat.id;
-    const locations = await this.apiService.getLocations();
-    const data = (ctx as any).callbackQuery?.data;
-    if (!data) return;
-    const messageId = ctx.callbackQuery.message.message_id;
-    const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === data);
-    if (!selectedLocation) return;
-
-    let months = 1;
-    let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
-
+  async generateConfig(ctx: MyContext) {
     try {
-      await ctx.deleteMessage(messageId);
-    } catch (error) {
-      console.error('Ошибка при удалении сообщения:', error);
-    }
+      const payment = ctx.session?.payment;
+      const userId = String(ctx.from.id);
+      const username = ctx.from.username
+      const locations = await this.apiService.getLocations();
+      const data = (ctx as any).callbackQuery?.data;
+      if (!data) return;
+      const messageId = ctx.callbackQuery.message.message_id;
+      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === data);
+      if (!selectedLocation) return;
 
-    if (this.isProd) {
-      const paymentInfo = (ctx as any).session?.payment;
-
-      if (!paymentInfo) {
-        return await ctx.reply('⚠️ Оплата обязательна для использования сервиса.');
-      }
-
-      months = this.getSubscriptionLength(paymentInfo.invoice_payload);
-      configName = `${paymentInfo}`;
-      await ctx.reply('💸 Спасибо за оплату! 🙏');
-    } else {
-      await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
-    }
-
-    await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
-
-    const config = await this.apiService.createConfig({
-      userId,
-      months,
-      name: configName,
-      locationId: selectedLocation.id
-    });
-
-    if (config) {
-      const qrPath = `/tmp/qrcode_${userId}.png`;
+      let months = 1;
+      let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
 
       try {
-        await generateQrCode(config.vlessUrl, qrPath);
-        await ctx.replyWithPhoto({ source: qrPath }, {
-          caption: `🎉 Ваше подключение готово:\n\`\`\`${config.vlessUrl}\`\`\`\n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
-          parse_mode: "MarkdownV2",
+        await ctx.deleteMessage(messageId);
+      } catch (error) {
+        console.error('Ошибка при удалении сообщения:', error);
+      }
+
+      if (this.isProd) {
+        if (!payment) {
+          return await ctx.reply('⚠️ Оплата обязательна для использования сервиса.');
+        }
+
+        months = this.getSubscriptionLength(payment.invoice_payload);
+        configName = `${username} ${payment.invoice_payload}`;
+        await ctx.reply('💸 Спасибо за оплату! 🙏');
+      } else {
+        await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
+      }
+
+      const isTrial = payment && payment.invoice_payload === "trial" || true
+
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
+
+      const config = await this.apiService.createConfig({
+        userId,
+        username,
+        months,
+        isTrial,
+        name: configName,
+        locationId: selectedLocation.id,
+        price: payment?.total_amount || 0,
+        promoCode: ""
+      });
+
+      if ((config as any).response.data.statusCode === 403) {
+        await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
           reply_markup: {
-            inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
+            inline_keyboard: [[
+              {
+                text: "🔁 Попробовать еще раз",
+                callback_data: "subscribe_command"
+              }
+            ]]
           }
         });
-      } catch (error) {
-        console.error('Ошибка при создании QR-кода:', error);
-        await ctx.reply('⚠️ Ошибка при генерации QR-кода. Свяжитесь с поддержкой.');
-      } finally {
-        fs.unlink(qrPath, () => {
-          console.log({deleted: qrPath})
-        });
+        return;
       }
-    } else {
-      await ctx.reply('⚠️ Ошибка при генерации подключения. Свяжитесь с поддержкой.', {
+
+      const qrPath = `/tmp/qrcode_${userId}.png`;
+
+      if (config)
+        try {
+          await generateQrCode(config.vlessUrl, qrPath);
+          await ctx.replyWithPhoto({ source: qrPath }, {
+            caption: `🎉 Ваше подключение готово:\n\`\`\`${config.vlessUrl}\`\`\`\n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
+            }
+          });
+        } catch (error) {
+          console.error('Ошибка при создании QR-кода:', error);
+          await ctx.reply('⚠️ Ошибка при генерации QR-кода. Свяжитесь с поддержкой.');
+        } finally {
+          fs.unlink(qrPath, () => {
+            console.log({deleted: qrPath})
+          });
+        }
+    } catch (e: any) {
+      console.log({ e: e.response })
+
+      console.error("Ошибка при генерации подключения:", e);
+      await ctx.reply("⚠️ Произошла ошибка. Свяжитесь с поддержкой.", {
         reply_markup: {
           inline_keyboard: [
             [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
