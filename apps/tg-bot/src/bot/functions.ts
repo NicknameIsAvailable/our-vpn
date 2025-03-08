@@ -56,6 +56,11 @@ export class BotFunctions {
 
       if (price.key === "trial") {
         await this.chooseLocation(ctx)
+        ctx.session.payment = {
+          invoice_payload: "trial",
+          total_amount: 0,
+          currency: ""
+        }
         return
       }
 
@@ -324,7 +329,7 @@ export class BotFunctions {
         promoCode: ""
       });
 
-      if ((config as any).response.data.statusCode === 403) {
+      if ((config as any).response && (config as any).response.data.statusCode === 403) {
         await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
           reply_markup: {
             inline_keyboard: [[
