@@ -223,6 +223,11 @@ export const instructions: Instruction[] = [
 
 export const prices: LabeledPrice[] = [
   {
+    label: "Пробная подписка на 3 дня",
+    amount: 0,
+    key: "trial"
+  },
+  {
     label: "1 месяц подписки",
     amount: 79 * 100,
     key: "1m",

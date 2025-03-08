@@ -96,12 +96,17 @@ export class BotService {
       }
 
       if (data && data.startsWith("choose_location_")) {
-        await botFunctions.chooseLocation(ctx)
+        await botFunctions.generateConfig(ctx)
         return;
       }
 
       if (data && data === "open_menu") {
         await botFunctions.openMenu(ctx)
+        return;
+      }
+
+      if (data && data.startsWith("choose_price_")) {
+        await botFunctions.handlePayment(ctx, data)
         return;
       }
 
@@ -214,7 +219,7 @@ export class BotService {
     });
 
     this.bot.command("help", async (ctx) => {
-      botFunctions.showGuide(ctx)
+      await botFunctions.showGuide(ctx)
     });
 
     this.bot.command('connections', async (ctx) => {
@@ -270,7 +275,7 @@ export class BotService {
       };
 
       await ctx.reply("💸 Оплата прошла успешно! Теперь выбери локацию для VPN.");
-      await botFunctions.generateConfig(ctx);
+      await botFunctions.chooseLocation(ctx);
     });
 
     this.bot.command('servers', async (ctx) => {

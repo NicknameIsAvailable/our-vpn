@@ -2,9 +2,8 @@ import { InboundResponse, xuiApi } from '@nash-vpn/xui';
 import { Injectable } from '@nestjs/common';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { PrismaService } from '@nash-vpn/db';
-import { CreateCustomConfigDto } from './dto/create-custom-config.dto';
 import { VlessConfig } from "types/vless"
-import { Location } from "@prisma/client";
+import { Location, PromoCode } from "@prisma/client";
 
 @Injectable()
 export class ConfigsService {
@@ -136,9 +135,25 @@ export class ConfigsService {
   }
 
   async create(createConfigDto: CreateConfigDto) {
-    const expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000
-    const email = this.generateRandomEmail()
-    const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } })
+    let expiryTime: number;
+    let promoCode: PromoCode | null = null;
+
+    if (createConfigDto.isTrial) {
+      expiryTime = Date.now() + 3 * 24 * 60 * 60 * 1000;
+    } else {
+      expiryTime = Date.now() + createConfigDto.months * 30 * 24 * 60 * 60 * 1000;
+    }
+
+    if (createConfigDto.promoCode && createConfigDto.promoCode !== "") {
+      promoCode = await this.prisma.promoCode.findFirst({ where: { code: createConfigDto.promoCode } });
+    }
+
+    if (promoCode === null && createConfigDto.promoCode) {
+      throw new Error('Promo code not found');
+    }
+
+    const email = this.generateRandomEmail();
+    const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } });
 
     const config: any = await this.generateConfig(location, expiryTime, email, createConfigDto.name);
     const vlessUrls = this.getVlessLinks(config, location);
@@ -146,11 +161,27 @@ export class ConfigsService {
     return this.prisma.config.create({
       data: {
         userId: String(createConfigDto.userId),
+        username: createConfigDto.username,
+        price: createConfigDto.price,
         name: createConfigDto.name,
+        isTrial: createConfigDto.isTrial,
         config: JSON.stringify(config),
         vlessUrl: vlessUrls.find(url => url.includes(email)),
         locationId: location.id,
+        promoCodeId: promoCode ? promoCode.id : null,  // Если промокод найден, передаем его ID
       },
+      include: {
+        promoCode: true,
+        location: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            city: true,
+            coordinates: true,
+          }
+        }
+      }
     });
   }
 
