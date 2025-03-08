@@ -5,4 +5,4 @@
 
 */
 -- AlterTable
-ALTER TABLE "VlessConfig" ADD COLUMN "isTrial" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "VlessConfig" ADD COLUMN     "isTrial" BOOLEAN NOT NULL;
