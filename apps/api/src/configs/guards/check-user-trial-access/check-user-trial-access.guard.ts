@@ -10,20 +10,24 @@ export class CheckUserTrialAccessGuard implements CanActivate {
     console.log('CheckUserTrialAccessGuard triggered');
 
     const userIdField = this.reflector.get<string>('check-user-trial-access', context.getHandler());
-    console.log({ userIdField })
     if (!userIdField) return true;
 
     const request = context.switchToHttp().getRequest();
-    const userId = request.body?.[userIdField];
+    const { [userIdField]: userId, isTrial } = request.body;
 
-    console.log({ userId })
+    console.log({ userId, isTrial });
+
+    // Если isTrial не передан или false — скипаем проверку
+    if (!isTrial) return true;
 
     if (!userId) {
       throw new ForbiddenException('User ID is missing in request body');
     }
 
     const userConfig = await this.prisma.config.findFirst({
-      where: { userId, isTrial: true },
+      where: {
+        AND: [{ userId: userId }, { isTrial: true }]
+      }
     });
 
     if (userConfig) {
