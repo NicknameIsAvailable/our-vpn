@@ -36,7 +36,7 @@ model Config {
   isTrial     Boolean @default(false)
   userId      String
   username    String
-  price       Int
+  price       Int       @default(0)
   promoCodeId String?
   promoCode   PromoCode? @relation("PromoCodeConfig", fields: [ promoCodeId ], references: [ id ])
   locationId  String
