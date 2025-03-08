@@ -2,7 +2,7 @@ import { prices } from './../assets/assets';
 import { countryToEmoji } from 'functions/country-to-emoji';
 import { ApiService } from "../api/api.service";
 import { Context, Telegraf } from 'telegraf';
-import { InlineKeyboardButton, Message, Update } from '@telegraf/types';
+import { Message, Update } from '@telegraf/types';
 import { Config } from '@prisma/client';
 import moment from "moment";
 import fs from 'fs'
@@ -314,7 +314,7 @@ export class BotFunctions {
         await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
       }
 
-      const isTrial = payment && payment.invoice_payload === "trial" || true
+      const isTrial = payment && payment.invoice_payload === "trial"
 
       await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
 
