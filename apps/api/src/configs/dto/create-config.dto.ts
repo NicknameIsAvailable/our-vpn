@@ -3,7 +3,7 @@ export class CreateConfigDto {
   name: string;
   locationId: string;
   userId: string;
-  username: string;
+  username?: string;
   price: number;
   isTrial: boolean;
   promoCode?: string;
