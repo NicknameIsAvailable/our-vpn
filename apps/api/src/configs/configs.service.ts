@@ -161,7 +161,7 @@ export class ConfigsService {
     return this.prisma.config.create({
       data: {
         userId: String(createConfigDto.userId),
-        username: createConfigDto.username,
+        username: createConfigDto.username || `anon-${createConfigDto.userId}`,
         price: createConfigDto.price,
         name: createConfigDto.name,
         isTrial: createConfigDto.isTrial,
