@@ -162,7 +162,6 @@ export class ConfigsService {
       data: {
         userId: String(createConfigDto.userId),
         username: createConfigDto.username || `anon-${createConfigDto.userId}`,
-        price: createConfigDto.price,
         name: createConfigDto.name,
         isTrial: createConfigDto.isTrial,
         config: JSON.stringify(config),

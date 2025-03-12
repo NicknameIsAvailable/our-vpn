@@ -12,6 +12,7 @@ import { LoggerMiddleware } from '../logger/logger.middleware';
 import { APP_GUARD } from '@nestjs/core';
 import { CheckUserTrialAccessGuard } from '../configs/guards/check-user-trial-access/check-user-trial-access.guard';
 import { PromoCodeModule } from '../promo-code/promo-code.module';
+import { CheckoutModule } from '../checkout/checkout.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { PromoCodeModule } from '../promo-code/promo-code.module';
       isGlobal: true,
     }),
     UserModule,
-    AuthModule
+    CheckoutModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService, {

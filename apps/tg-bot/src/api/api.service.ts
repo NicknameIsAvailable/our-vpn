@@ -1,8 +1,11 @@
+import { Checkout } from 'types/checkout';
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { ClientLocation } from "types/client-location"
-import { Config } from '@prisma/client';
+import { Config, Invoice } from '@prisma/client';
+import { SendConfigDto } from '../hook/dto/create-hook.dto';
+import { IGetPaymentList } from '@a2seven/yoo-checkout';
 
 @Injectable()
 export class ApiService {
@@ -53,7 +56,7 @@ export class ApiService {
     }
   }
 
-  async createConfig(configData: { name: string; userId: string, username: string, isTrial: boolean, price: number, promoCode: string, months: number; locationId: string; }) {
+  async createConfig(configData: SendConfigDto) {
     const url = `${this.apiUrl}/v1/configs`;
     try {
       const response = await firstValueFrom(
@@ -77,6 +80,20 @@ export class ApiService {
       return response.data;
     } catch (error) {
       console.error('Ошибка создания конфига', error);
+      return null;
+    }
+  }
+
+  async createInvoice(data: Checkout): Promise<{ payment: IGetPaymentList, data: Invoice}> {
+    const url = `${this.apiUrl}/v1/checkout`
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(url, data)
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка создания инвойса', error);
       return null;
     }
   }

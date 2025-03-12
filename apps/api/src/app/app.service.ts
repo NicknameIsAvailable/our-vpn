@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Router } from "express"
 
 @Injectable()
 export class AppService {

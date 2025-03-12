@@ -8,12 +8,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const port = process.env.API_PORT || 8080;
-  const url = process.env.API_URL
+  const url = process.env.API_URL.replace("/api", "")
   const globalPrefix = 'api/v1';
 
   app.use(cookieParser());
   app.setGlobalPrefix(globalPrefix);
-
   await app.listen(port);
   app.enableCors({
     origin: configService.get<string>('CORS_ORIGIN'),

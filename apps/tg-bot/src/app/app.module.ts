@@ -7,10 +7,12 @@ import { HttpModule } from '@nestjs/axios';
 import { ApiService } from '../api/api.service';
 import { ApiModule } from '../api/api.module';
 import { BotFunctions } from '../bot/functions';
+import { HookModule } from '../hook/hook.module';
+import { HookService } from '../hook/hook.service';
 
 @Module({
-  imports: [BotModule, HttpModule, ApiModule],
+  imports: [BotModule, HttpModule, ApiModule, HookModule],
   controllers: [AppController],
-  providers: [AppService, BotService, ApiService, BotFunctions],
+  providers: [AppService, BotService, ApiService, BotFunctions, HookService],
 })
 export class AppModule {}

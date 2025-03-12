@@ -11,9 +11,9 @@ import { Injectable } from '@nestjs/common';
 import { MyContext } from './bot.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { randomUUID } from 'crypto';
-import { LabeledPrice, osList } from '../assets/assets';
+import { osList } from '../assets/assets';
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
-
+import { Checkout } from 'types/checkout';
 
 @Injectable()
 export class BotFunctions {
@@ -32,8 +32,13 @@ export class BotFunctions {
     return match ? parseInt(match[0], 10) : null;
   }
 
-  async handleSubscribe(ctx: Context<Update.CallbackQueryUpdate>) {
+  async handleSubscribe(ctx: Context<Update.CallbackQueryUpdate>, data: string) {
     try {
+      (ctx as any).session = {
+        ...(ctx as any).session,
+        location: data
+      }
+
       await ctx.reply("Выберите вариант подписки", {
         reply_markup: {
           inline_keyboard: prices.map((price) => ([
@@ -51,8 +56,10 @@ export class BotFunctions {
   }
 
   async handlePayment(ctx: MyContext, data: string) {
-    if (this.isProd) {
+    // if (this.isProd) {
+
       const price = prices.find(price => `choose_price_${price.key}` === data)
+      console.log({price, data})
 
       if (price.key === "trial") {
         await this.chooseLocation(ctx)
@@ -64,37 +71,95 @@ export class BotFunctions {
         return
       }
 
-      const paymentId = randomUUID();
+      const userId = String(ctx.from.id);
+      const username = ctx.from.username
+      const locations = await this.apiService.getLocations();
+      if (!data) return;
+      const messageId = ctx.callbackQuery.message.message_id;
+      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
+      console.log({ selectedLocation })
+      if (!selectedLocation) return;
 
-      const generateProviderData = (price: LabeledPrice) => JSON.stringify({
-        receipt: {
-          items: [{
+      let months = 1;
+      let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
+
+      const idempotenceKey = randomUUID();
+      months = this.getSubscriptionLength(`vpn_${price.key}`);
+      configName = `${username} ${`vpn_${price.key}_${messageId}`}`;
+
+      const isTrial = price && price.key === "trial"
+
+      const invoiceData: Checkout = {
+        amount: price.amount,
+        idempotence_key: idempotenceKey,
+        username: ctx.from.username || `anon-${ctx.from.id}`,
+        email: `${ctx.from.first_name}@mail.com`,
+        items: [
+          {
             description: price.label,
-            quantity: 1,
-            amount: { value: price.amount / 100, currency: "RUB" },
-            vat_code: 1,
-            payment_mode: "full_payment",
-            payment_subject: "commodity"
-          }],
-          tax_system_code: 1
+            amount: price.amount
+          }
+        ],
+        payload: {
+          userId,
+          username,
+          months,
+          isTrial,
+          price: price.amount / 100,
+          name: configName,
+          locationId: selectedLocation.id,
+          promoCode: ""
         }
-      });
+      }
 
-      await ctx.replyWithInvoice({
-        title: price.label,
-        description: `${price.amount / 100} RUB за подписку`,
-        payload: `vpn_${price.key}_${paymentId}`,
-        provider_token: this.providerToken,
-        provider_data: generateProviderData(price),
-        send_email_to_provider: true,
-        currency: 'RUB',
-        prices: [price],
-        start_parameter: 'get_access',
-        need_email: true,
-      });
-    } else {
-      this.chooseLocation(ctx as MyContext)
-    }
+      const invoice = await this.apiService.createInvoice(invoiceData)
+
+      ctx.reply(`Вы выбрали ${price.label} \n Для оплаты нажмите кнопку ниже 👇`, {
+        parse_mode: "MarkdownV2",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "Оплатить",
+                url: invoice.data.confirmation_url
+              }
+            ]
+          ]
+        }
+      })
+
+
+      // const paymentId = randomUUID();
+
+      // const generateProviderData = (price: LabeledPrice) => JSON.stringify({
+      //   receipt: {
+      //     items: [{
+      //       description: price.label,
+      //       quantity: 1,
+      //       amount: { value: price.amount / 100, currency: "RUB" },
+      //       vat_code: 1,
+      //       payment_mode: "full_payment",
+      //       payment_subject: "commodity"
+      //     }],
+      //     tax_system_code: 1
+      //   }
+      // });
+
+      // await ctx.replyWithInvoice({
+      //   title: price.label,
+      //   description: `${price.amount / 100} RUB за подписку`,
+      //   payload: `vpn_${price.key}_${paymentId}`,
+      //   provider_token: this.providerToken,
+      //   provider_data: generateProviderData(price),
+      //   send_email_to_provider: true,
+      //   currency: 'RUB',
+      //   prices: [price],
+      //   start_parameter: 'get_access',
+      //   need_email: true,
+      // });
+    // } else {
+    //   this.chooseLocation(ctx as MyContext)
+    // }
   }
 
   async chooseLocation(ctx: MyContext) {
@@ -147,7 +212,7 @@ export class BotFunctions {
       await this.openMenu(ctx as any)
     }
     else if (text === "💳 Подписка" || text.includes("/subscribe")) {
-      await this.handleSubscribe(ctx as any);
+      await this.chooseLocation(ctx as any);
     }
     else if (text === "🆘 Поддержка") {
       await ctx.reply(`📞 Свяжись с поддержкой: ${this.supportUrl}`);
@@ -206,6 +271,21 @@ export class BotFunctions {
     }
   }
 
+  showUserConfig = (client: any) => {
+    const expiryTime = (client as any).config.obj.expiryTime
+    ? moment((client as any).config.obj.expiryTime).format("DD.MM.YYYY HH:mm")
+    : "Не указано";
+
+    const caption = `*${escapeMarkdownV2(client.name)}*\n`
+    + `⏳ *Дата окончания*: ${escapeMarkdownV2(expiryTime)}\n`
+    + `🌎 *Локация*: ${countryToEmoji((client as any).location.country)} ${escapeMarkdownV2((client as any).location.country)} ${escapeMarkdownV2((client as any).location.city)}\n`
+    + `🔑 *Ссылка для подключения*:\n`
+    + `\`\`\`\n${escapeMarkdownV2(client.vlessUrl)}\n\`\`\``;
+
+    return caption;
+  }
+
+
   showConfig = async (ctx: Context) => {
     try {
       const callbackData = (ctx.callbackQuery as any)?.data;
@@ -222,9 +302,7 @@ export class BotFunctions {
         return ctx.answerCbQuery("❌ Конфиг не найден!", { show_alert: true });
       }
 
-      const expiryTime = (client as any).config.obj.expiryTime
-        ? moment((client as any).config.obj.expiryTime).format("DD.MM.YYYY HH:mm")
-        : "Не указано";
+      const caption = this.showUserConfig(client)
 
       const qrPath = `/tmp/qrcode_${client.name}.png`;
 
@@ -235,11 +313,6 @@ export class BotFunctions {
         return ctx.reply('Ошибка при генерации QR-кода');
       }
 
-      const caption = `*${escapeMarkdownV2(client.name)}*\n`
-        + `⏳ *Дата окончания*: ${escapeMarkdownV2(expiryTime)}\n`
-        + `🌎 *Локация*: ${countryToEmoji((client as any).location.country)} ${escapeMarkdownV2((client as any).location.country)} ${escapeMarkdownV2((client as any).location.city)}\n`
-        + `🔑 *Ссылка для подключения*:\n`
-        + `\`\`\`\n${escapeMarkdownV2(client.vlessUrl)}\n\`\`\``;
 
       await ctx.replyWithPhoto(
         { source: fs.createReadStream(qrPath) },

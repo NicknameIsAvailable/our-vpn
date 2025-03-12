@@ -10,6 +10,7 @@ import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 interface BotSession {
   locationMessageId?: number;
+  location?: string;
   payment?: {
     invoice_payload: string;
     total_amount: number;
@@ -63,7 +64,7 @@ export class BotService {
     });
 
     this.bot.action("subscribe_command", async (ctx) => {
-      botFunctions.handleSubscribe(ctx)
+      botFunctions.chooseLocation(ctx)
     });
 
     this.bot.action("guide", async (ctx) => {
@@ -96,7 +97,7 @@ export class BotService {
       }
 
       if (data && data.startsWith("choose_location_")) {
-        await botFunctions.generateConfig(ctx)
+        await botFunctions.handleSubscribe(ctx, data)
         return;
       }
 
@@ -248,7 +249,7 @@ export class BotService {
     });
 
     this.bot.command("subscribe", async (ctx: MyContext) => {
-      await botFunctions.handleSubscribe(ctx as any)
+      await botFunctions.chooseLocation(ctx as any)
     });
 
     this.bot.on('pre_checkout_query', async (ctx) => {

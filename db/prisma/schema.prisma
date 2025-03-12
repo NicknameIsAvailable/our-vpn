@@ -9,48 +9,70 @@ datasource db {
 }
 
 model Location {
-  id             String   @id @default(uuid())
-  name           String
-  country        String
-  city           String?
-  ip             String
-  coordinates    String
-  user           String
-  url            String
-  host           String
-  port           Int
-  password       String
-  configs        Config[] @relation("LocationConfig")
+  id          String   @id @default(uuid())
+  name        String
+  country     String
+  city        String?
+  ip          String
+  coordinates String
+  user        String
+  url         String
+  host        String
+  port        Int
+  password    String
+  configs     Config[] @relation("LocationConfig")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Invoice {
+  id               String   @id
+  amount           Int
+  configId         String?
+  Config           Config[] @relation("InvoiceConfig")
+  status           String
+  paid             Boolean
+  confirmation_url String
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now()) @updatedAt
 }
 
 model User {
-  id       String   @id @default(uuid())
-  email    String   @unique
-  nickname String   @unique
-  password String
+  id         String   @id @default(uuid())
+  email      String   @unique
+  nickname   String   @unique
+  password   String
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
 }
 
 model Config {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   name        String
-  isTrial     Boolean @default(false)
+  isTrial     Boolean    @default(false)
   userId      String
   username    String
-  price       Int       @default(0)
+  invoiceId   String?
+  invoice     Invoice?   @relation("InvoiceConfig", fields: [invoiceId], references: [id])
   promoCodeId String?
-  promoCode   PromoCode? @relation("PromoCodeConfig", fields: [ promoCodeId ], references: [ id ])
+  promoCode   PromoCode? @relation("PromoCodeConfig", fields: [promoCodeId], references: [id])
   locationId  String
-  location    Location @relation("LocationConfig", fields: [locationId], references: [id])
+  location    Location   @relation("LocationConfig", fields: [locationId], references: [id])
   config      Json
   vlessUrl    String
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @default(now()) @updatedAt
+
   @@map("VlessConfig")
 }
 
 model PromoCode {
-  id              String @id @default(uuid())
-  code            String @unique
+  id              String   @id @default(uuid())
+  code            String   @unique
   name            String
   description     String
   discountPercent Int
   configs         Config[] @relation("PromoCodeConfig")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
 }
