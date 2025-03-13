@@ -16,9 +16,7 @@ services:
       - app-network
 
   db:
-    build:
-      context: .
-      dockerfile: db/Dockerfile
+    image: ksotneo/vpn-service:db-prod
     container_name: db
     env_file:
       - .env.production
@@ -30,14 +28,13 @@ services:
       - app-network
 
   api:
-    build:
-      context: .
-      dockerfile: apps/api/Dockerfile
+    image: ksotneo/vpn-service:api-prod
     container_name: api
     env_file:
       - .env.production
     depends_on:
       - postgres
+      - db
     environment:
       DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: ${JWT_SECRET}
@@ -50,14 +47,13 @@ services:
       - app-network
 
   tg-bot:
-    build:
-      context: .
-      dockerfile: apps/tg-bot/Dockerfile
+    image: ksotneo/vpn-service:tg-bot-prod
     container_name: tg-bot
     env_file:
       - .env.production
     depends_on:
       - postgres
+      - api
     environment:
       API_PORT: ${API_PORT}
       API_URL: ${API_URL}
