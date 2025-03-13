@@ -3,11 +3,11 @@ WORKDIR /app
 
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile
-RUN yarn add dotenv-cli
 
 COPY . .
 
 FROM node:18-alpine AS runner
+RUN yarn add dotenv-cli
 
 WORKDIR /app
 
