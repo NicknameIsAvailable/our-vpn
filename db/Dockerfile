@@ -14,5 +14,5 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/db/prisma ./db/prisma
 
-RUN npm run migrate:postgres-prod
+RUN yarn run migrate:postgres-prod
 CMD ["sh", "-c", "npx prisma generate --schema db/prisma/schema.prisma"]
