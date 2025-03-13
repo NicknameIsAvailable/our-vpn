@@ -21,6 +21,7 @@
     "@nestjs/platform-express": "^10.0.2",
     "@prisma/client": "^6.2.1",
     "axios": "^1.6.0",
+    "dotenv": "^16.4.7",
     "next": "14.2.16",
     "passport-magic-link": "^2.1.1",
     "prisma": "^6.2.1",
