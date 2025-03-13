@@ -67,7 +67,7 @@ export class CheckoutService {
 
       const onSuccess = await checkout.createWebHook({
         event: 'payment.succeeded',
-        url: `${process.env.PROJECT_URL}/bot/hook/send-config${formattedPayload}`
+        url: `${process.env.PROJECT_URL}/bot/hook/send-config?${formattedPayload}`
       })
 
       const onCancel = await checkout.createWebHook({
