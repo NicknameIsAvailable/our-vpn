@@ -55,7 +55,7 @@ services:
       dockerfile: apps/tg-bot/Dockerfile
     container_name: tg-bot
     ports:
-      - "5432:5432"
+      - "3000:3000"
     env_file:
       - .env.production
     depends_on:
