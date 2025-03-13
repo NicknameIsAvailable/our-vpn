@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "migrate:postgres-local": "yarn dotenv -e .env.local -- yarn prisma migrate deploy --schema db/prisma/schema.prisma",
-    "migrate:postgres-local:dev": "yarn dotenv -e .env.local -- yarn prisma migrate dev --schema db/prisma/schema.prisma --create-only",
-    "migrate:postgres-prod": "yarn dotenv -e .env.production -- yarn prisma migrate deploy --schema db/prisma/schema.prisma",
-    "migrate:postgres-prod:dev": "yarn dotenv -e .env.production -- yarn prisma migrate dev --schema db/prisma/schema.prisma",
-    "generate:postgres-local": "yarn dotenv -e .env.local -- yarn prisma generate --schema db/prisma/schema.prisma",
-    "generate:postgres-prod": "yarn dotenv -e .env.production -- yarn prisma generate --schema db/prisma/schema.prisma",
-    "migrate:create-local": "yarn dotenv -e .env.local -- yarn prisma migrate dev --schema db/prisma/schema.prisma --create-only --name",
-    "migrate:create-prod": "yarn dotenv -e .env.production -- yarn prisma migrate dev --schema db/prisma/schema.prisma --create-only --name"
+    "migrate:postgres-local": "npx run dotenv -e .env.local -- npx run prisma migrate deploy --schema=db/prisma/schema.prisma",
+    "migrate:postgres-local:dev": "npx run dotenv -e .env.local -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma --create-only",
+    "migrate:postgres-prod": "npx run dotenv -e .env.production -- npx run prisma migrate deploy --schema ./db/prisma/schema.prisma",
+    "migrate:postgres-prod:dev": "npx run dotenv -e .env.production -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma",
+    "generate:postgres-local": "npx run dotenv -e .env.local -- npx run prisma generate --schema ./db/prisma/schema.prisma",
+    "generate:postgres-prod": "npx run dotenv -e .env.production -- npx run prisma generate --schema ./db/prisma/schema.prisma",
+    "migrate:create-local": "npx run dotenv -e .env.local -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma --create-only --name",
+    "migrate:create-prod": "npx run dotenv -e .env.production -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma --create-only --name"
   },
   "private": true,
   "dependencies": {
@@ -71,6 +71,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
+    "dotenv-cli": "^8.0.0",
     "esbuild": "^0.19.2",
     "eslint": "^9.8.0",
     "eslint-config-next": "14.2.16",
