@@ -98,7 +98,7 @@ export class ApiService {
 
     try {
       const response = await firstValueFrom(
-        this.httpService.post(url)
+        this.httpService.get(url)
       );
       return response.data;
     } catch (error) {
