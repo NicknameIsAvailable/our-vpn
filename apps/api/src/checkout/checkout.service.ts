@@ -10,8 +10,6 @@ export class CheckoutService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createCheckoutDto: CreateCheckoutDTO) {
-    console.log({ createCheckoutDto })
-
     const formattedItems: IItemWithoutData[] = createCheckoutDto.items.map((item) => ({
       ...item,
       amount: {
@@ -48,17 +46,6 @@ export class CheckoutService {
 
     try {
       const payment = await checkout.createPayment(payload, createCheckoutDto.idempotence_key)
-      console.log({ payment })
-
-      const data = await this.prisma.invoice.create({
-        data: {
-          id: payment.id,
-          amount: Number(payment.amount.value),
-          status: payment.status,
-          paid: payment.paid,
-          confirmation_url: payment.confirmation.confirmation_url,
-        }
-      });
 
       const formattedPayload = Object.entries(createCheckoutDto.payload)
         .filter(([_, value]) => value !== undefined && value !== null)
@@ -70,27 +57,48 @@ export class CheckoutService {
         url: `${process.env.PROJECT_URL}/bot/hook/send-config?${formattedPayload}`
       })
 
-      const onCancel = await checkout.createWebHook({
-        event: 'payment.canceled',
-        url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/cancel${formattedPayload}`
-      })
+      // const onCancel = await checkout.createWebHook({
+      //   event: 'payment.canceled',
+      //   url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/cancel${formattedPayload}`
+      // })
 
-      const onWaiting = await checkout.createWebHook({
-        event: 'payment.waiting_for_capture',
-        url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/waiting${formattedPayload}`
-      })
+      // console.log({onCancel})
+
+      // const onWaiting = await checkout.createWebHook({
+      //   event: 'payment.waiting_for_capture',
+      //   url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/waiting${formattedPayload}`
+      // })
+
+      // console.log({onWaiting})
+
+      const data = await this.prisma.invoice.create({
+        data: {
+          id: payment.id,
+          amount: Number(payment.amount.value),
+          webhookId: onSuccess.id,
+          status: payment.status,
+          paid: payment.paid,
+          confirmation_url: payment.confirmation.confirmation_url,
+        }
+      });
+
+      console.log({ data })
 
       return {
         payment,
         data,
         onSuccess,
-        onCancel,
-        onWaiting
+        // onCancel,
+        // onWaiting
       }
     } catch (e) {
       console.error(e)
       return e
     }
+  }
+
+  async deleteHookById(id: string) {
+    return checkout.deleteWebHook(id)
   }
 
   async findMany(filters: Partial<CreateCheckoutDTO>) {

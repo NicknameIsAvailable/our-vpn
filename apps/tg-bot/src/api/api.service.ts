@@ -134,4 +134,18 @@ export class ApiService {
       return null;
     }
   }
+
+  async deleteWebhookById(id: string) {
+    const url = `${this.apiUrl}/v1/checkout/hook/${id}`
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.delete(url)
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка удаления вебхука', error);
+      return null;
+    }
+  }
 }

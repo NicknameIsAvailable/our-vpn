@@ -17,10 +17,9 @@ export class HookService {
   async sendConfig(sendConfigDto: SendConfigDto, paymentInfo: PaymentInfo) {
     try {
       const invoice = await this.apiService.findInvoice(paymentInfo.object.id)
-      console.log({invoice})
-      if (invoice.configId && invoice.paid) return;
 
       const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
+
       const newInvoice = await this.apiService.updateInvoice(paymentInfo.object.id, {
         configId: config.id,
         status: paymentInfo.object.status,
@@ -30,6 +29,8 @@ export class HookService {
       const message = await this.bot.telegram.sendMessage(sendConfigDto.userId, caption, {
         parse_mode: "MarkdownV2",
       });
+
+      await this.apiService.deleteWebhookById(invoice.id)
 
       return {
         success: true,

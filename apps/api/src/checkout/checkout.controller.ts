@@ -30,4 +30,9 @@ export class CheckoutController {
   async deleteById(@Param('id') id: string) {
     return this.checkoutService.deleteById(id);
   }
+
+  @Delete('/hook/:id')
+  async deleteHookById(@Param('id') id: string) {
+    return this.checkoutService.deleteHookById(id);
+  }
 }

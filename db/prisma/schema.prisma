@@ -29,6 +29,7 @@ model Invoice {
   id               String   @id
   amount           Int
   configId         String?
+  webhookId        String?
   Config           Config[] @relation("InvoiceConfig")
   status           String
   paid             Boolean
