@@ -1,6 +1,6 @@
 import { Controller, Post, Param, Query, Body } from '@nestjs/common';
 import { HookService } from './hook.service';
-import { SendConfigDto } from './dto/create-hook.dto';
+import { PaymentInfo, SendConfigDto } from './dto/create-hook.dto';
 
 @Controller('hook')
 export class HookController {
@@ -9,10 +9,10 @@ export class HookController {
   @Post("send-config")
   create(
     @Query() dto: SendConfigDto,
-    @Body() paymentInfo: any,
+    @Body() paymentInfo: PaymentInfo,
   ) {
     console.log("send-config", { paymentInfo })
 
-    return this.hookService.sendConfig(dto);
+    return this.hookService.sendConfig(dto, paymentInfo);
   }
 }

@@ -7,6 +7,15 @@ import { Config, Invoice } from '@prisma/client';
 import { SendConfigDto } from '../hook/dto/create-hook.dto';
 import { IGetPaymentList } from '@a2seven/yoo-checkout';
 
+export class UpdateCheckoutDTO {
+  id: string;
+  amount: number;
+  configId: string;
+  status: string;
+  paid: true;
+  confirmation_url: string;
+}
+
 @Injectable()
 export class ApiService {
   private readonly apiUrl = process.env.API_URL;
@@ -56,7 +65,7 @@ export class ApiService {
     }
   }
 
-  async createConfig(configData: SendConfigDto) {
+  async createConfig(configData: SendConfigDto): Promise<Config> {
     const url = `${this.apiUrl}/v1/configs`;
     try {
       const response = await firstValueFrom(
@@ -84,12 +93,40 @@ export class ApiService {
     }
   }
 
+  async findInvoice (id: string): Promise<UpdateCheckoutDTO> {
+    const url = `${this.apiUrl}/v1/checkout/${id}`
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(url)
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка создания инвойса', error);
+      return null;
+    }
+  }
+
   async createInvoice(data: Checkout): Promise<{ payment: IGetPaymentList, data: Invoice}> {
     const url = `${this.apiUrl}/v1/checkout`
 
     try {
       const response = await firstValueFrom(
         this.httpService.post(url, data)
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Ошибка создания инвойса', error);
+      return null;
+    }
+  }
+
+  async updateInvoice(id: string, data: UpdateCheckoutDTO): Promise<{ CreateCheckoutDTO }> {
+    const url = `${this.apiUrl}/v1/checkout/${id}`
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.patch(url, data)
       );
       return response.data;
     } catch (error) {

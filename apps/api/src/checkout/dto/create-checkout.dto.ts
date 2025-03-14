@@ -24,3 +24,12 @@ export class CreateCheckoutDTO implements Checkout {
     username: string;
     payload: CheckoutPayloadDTO
 }
+
+export class UpdateCheckoutDto {
+  id: string;
+  amount: number;
+  configId: string;
+  status: string;
+  paid: true;
+  confirmation_url: string;
+}

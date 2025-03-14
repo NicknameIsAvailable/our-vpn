@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SendConfigDto } from './dto/create-hook.dto';
+import { PaymentInfo, SendConfigDto } from './dto/create-hook.dto';
 import { ApiService } from '../api/api.service';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
@@ -14,9 +14,17 @@ export class HookService {
     private botFunctions: BotFunctions
   ) {}
 
-  async sendConfig(sendConfigDto: SendConfigDto) {
+  async sendConfig(sendConfigDto: SendConfigDto, paymentInfo: PaymentInfo) {
     try {
+      const invoice = await this.apiService.findInvoice(paymentInfo.id)
+      if (invoice.configId && invoice.paid) return;
+
+
       const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
+      const newInvoice = await this.apiService.updateInvoice(paymentInfo.id, {
+        configId: config.id,
+        ...invoice
+      })
       const caption = this.botFunctions.showUserConfig(config);
       const message = await this.bot.telegram.sendMessage(sendConfigDto.userId, caption, {
         parse_mode: "MarkdownV2",
@@ -26,6 +34,7 @@ export class HookService {
         success: true,
         config,
         caption,
+        newInvoice,
         message
       };
     } catch (error) {

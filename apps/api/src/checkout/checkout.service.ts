@@ -1,6 +1,6 @@
 import { checkout } from './lib/yoo-checkout';
 import { Injectable } from '@nestjs/common';
-import { CreateCheckoutDTO } from './dto/create-checkout.dto';
+import { CreateCheckoutDTO, UpdateCheckoutDto } from './dto/create-checkout.dto';
 import { ICreatePayment, IItemWithoutData  } from '@a2seven/yoo-checkout';
 import { formatAmount } from "functions/format-amount"
 import { PrismaService } from '@nash-vpn/db';
@@ -102,21 +102,10 @@ export class CheckoutService {
   }
 
   async findById(id: string) {
-    const payment = await checkout.getPayment(id)
-    const entity = await this.prisma.invoice.update({
-      where: {id},
-      data: {
-        amount: Number(payment.amount.value),
-        status: payment.status,
-        paid: payment.paid,
-        confirmation_url: payment.confirmation.confirmation_url
-      },
-    })
-
-    return { data: payment, entity }
+    return this.prisma.invoice.findFirst({ where: { id } })
   }
 
-  async update(id: string, dto: Partial<CreateCheckoutDTO>) {
+  async update(id: string, dto: Partial<UpdateCheckoutDto>) {
     return this.prisma.invoice.update({
       where: { id },
       data: dto
