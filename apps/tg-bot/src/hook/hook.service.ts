@@ -16,10 +16,8 @@ export class HookService {
 
   async sendConfig(sendConfigDto: SendConfigDto) {
     try {
-      const config = await this.apiService.createConfig(sendConfigDto);
-
+      const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
       const caption = this.botFunctions.showUserConfig(config);
-
       const message = await this.bot.telegram.sendMessage(sendConfigDto.userId, caption, {
         parse_mode: "MarkdownV2",
       });
@@ -32,7 +30,10 @@ export class HookService {
       };
     } catch (error) {
       console.error("Ошибка при отправке сообщения:", error);
-      return "Ошибка при отправке сообщения";
+      return {
+        message: "Ошибка при отправке сообщения",
+        error
+      };
     }
   }
 }

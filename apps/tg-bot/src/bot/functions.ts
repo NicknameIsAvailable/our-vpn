@@ -61,15 +61,15 @@ export class BotFunctions {
       const price = prices.find(price => `choose_price_${price.key}` === data)
       console.log({price, data})
 
-      if (price.key === "trial") {
-        await this.chooseLocation(ctx)
-        ctx.session.payment = {
-          invoice_payload: "trial",
-          total_amount: 0,
-          currency: ""
-        }
-        return
-      }
+      // if (price.key === "trial") {
+      //   await this.generateConfig(ctx)
+      //   ctx.session.payment = {
+      //     invoice_payload: "trial",
+      //     total_amount: 0,
+      //     currency: ""
+      //   }
+      //   return
+      // }
 
       const userId = String(ctx.from.id);
       const username = ctx.from.username
@@ -89,6 +89,10 @@ export class BotFunctions {
 
       const isTrial = price && price.key === "trial"
 
+      if (isTrial) {
+        this.generateConfig(ctx)
+        return;
+      }
       const invoiceData: Checkout = {
         amount: price.amount,
         idempotence_key: idempotenceKey,
@@ -127,39 +131,6 @@ export class BotFunctions {
           ]
         }
       })
-
-
-      // const paymentId = randomUUID();
-
-      // const generateProviderData = (price: LabeledPrice) => JSON.stringify({
-      //   receipt: {
-      //     items: [{
-      //       description: price.label,
-      //       quantity: 1,
-      //       amount: { value: price.amount / 100, currency: "RUB" },
-      //       vat_code: 1,
-      //       payment_mode: "full_payment",
-      //       payment_subject: "commodity"
-      //     }],
-      //     tax_system_code: 1
-      //   }
-      // });
-
-      // await ctx.replyWithInvoice({
-      //   title: price.label,
-      //   description: `${price.amount / 100} RUB за подписку`,
-      //   payload: `vpn_${price.key}_${paymentId}`,
-      //   provider_token: this.providerToken,
-      //   provider_data: generateProviderData(price),
-      //   send_email_to_provider: true,
-      //   currency: 'RUB',
-      //   prices: [price],
-      //   start_parameter: 'get_access',
-      //   need_email: true,
-      // });
-    // } else {
-    //   this.chooseLocation(ctx as MyContext)
-    // }
   }
 
   async chooseLocation(ctx: MyContext) {
@@ -363,7 +334,7 @@ export class BotFunctions {
       const data = (ctx as any).callbackQuery?.data;
       if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
-      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === data);
+      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
       if (!selectedLocation) return;
 
       let months = 1;
