@@ -10,11 +10,15 @@ export class SendConfigDto {
 }
 
 export class PaymentInfo {
-  id: string;
-  status: string;
-  captured_at: string;
-  created_at: string;
-  paid: boolean;
-  refundable: boolean;
-  receipt_registration: string;
+  type: string;
+  event: string;
+  object: {
+    id: string;
+    status: string;
+    captured_at: string;
+    created_at: string;
+    paid: boolean;
+    refundable: boolean;
+    receipt_registration: string;
+  }
 }

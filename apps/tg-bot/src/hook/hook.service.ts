@@ -16,12 +16,13 @@ export class HookService {
 
   async sendConfig(sendConfigDto: SendConfigDto, paymentInfo: PaymentInfo) {
     try {
-      const invoice = await this.apiService.findInvoice(paymentInfo.id)
+      const invoice = await this.apiService.findInvoice(paymentInfo.object.id)
+      console.log({invoice})
       if (invoice.configId && invoice.paid) return;
 
 
       const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
-      const newInvoice = await this.apiService.updateInvoice(paymentInfo.id, {
+      const newInvoice = await this.apiService.updateInvoice(paymentInfo.object.id, {
         configId: config.id,
         ...invoice
       })
