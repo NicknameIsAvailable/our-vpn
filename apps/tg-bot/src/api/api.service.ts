@@ -8,12 +8,12 @@ import { SendConfigDto } from '../hook/dto/create-hook.dto';
 import { IGetPaymentList } from '@a2seven/yoo-checkout';
 
 export class UpdateCheckoutDTO {
-  id: string;
-  amount: number;
-  configId: string;
-  status: string;
-  paid: true;
-  confirmation_url: string;
+  id?: string;
+  amount?: number;
+  configId?: string;
+  status?: string;
+  paid?: boolean;
+  confirmation_url?: string;
 }
 
 @Injectable()
