@@ -243,9 +243,13 @@ export class BotFunctions {
   }
 
   showUserConfig = (client: any) => {
-    const expiryTime = (client as any).config.obj.expiryTime
-    ? moment((client as any).config.obj.expiryTime).format("DD.MM.YYYY HH:mm")
-    : "Не указано";
+    const expiryTime = (client as any).config.obj.expiryTime === 0
+    ? "Бесконечный"
+    : (client as any).config.obj.expiryTime
+      ? moment(Number((client as any).config.obj.expiryTime)).format("DD.MM.YYYY HH:mm")
+      : "Не указано";
+
+    console.log({expiryTime: (client as any).config.obj.expiryTime})
 
     const caption = `*${escapeMarkdownV2(client.name)}*\n`
     + `⏳ *Дата окончания*: ${escapeMarkdownV2(expiryTime)}\n`
