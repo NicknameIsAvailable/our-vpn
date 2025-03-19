@@ -13,6 +13,7 @@ export class UpdateCheckoutDTO {
   configId?: string;
   status?: string;
   paid?: boolean;
+  webhookId?: string;
   confirmation_url?: string;
 }
 
@@ -100,6 +101,7 @@ export class ApiService {
       const response = await firstValueFrom(
         this.httpService.get(url)
       );
+
       return response.data;
     } catch (error) {
       console.error('Ошибка создания инвойса', error);

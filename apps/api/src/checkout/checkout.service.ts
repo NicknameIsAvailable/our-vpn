@@ -115,7 +115,7 @@ export class CheckoutService {
   }
 
   async findById(id: string) {
-    return this.prisma.invoice.findFirst({ where: { id } })
+    return this.prisma.invoice.findUnique({ where: { id } })
   }
 
   async update(id: string, dto: Partial<UpdateCheckoutDto>) {

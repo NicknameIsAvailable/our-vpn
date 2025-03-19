@@ -18,7 +18,13 @@ export class HookService {
     try {
       const invoice = await this.apiService.findInvoice(paymentInfo.object.id)
 
+      console.log({ invoice, paymentInfo })
+
+      if (invoice.configId || invoice.paid || invoice.status === "succeeded") return;
+
       const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
+
+      console.log({ config })
 
       const newInvoice = await this.apiService.updateInvoice(paymentInfo.object.id, {
         configId: config.id,
@@ -30,7 +36,9 @@ export class HookService {
         parse_mode: "MarkdownV2",
       });
 
-      await this.apiService.deleteWebhookById(invoice.id)
+      console.log({ invoice })
+
+      await this.apiService.deleteWebhookById(invoice.webhookId)
 
       return {
         success: true,
