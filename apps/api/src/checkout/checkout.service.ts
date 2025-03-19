@@ -103,7 +103,20 @@ export class CheckoutService {
   }
 
   async deleteHookById(id: string) {
-    return checkout.deleteWebHook(id)
+    console.log({ deleteHookById: id })
+    try {
+      await checkout.deleteWebHook(id)
+      return {
+        message: "webhook deleted",
+        success: true
+      }
+    } catch (error) {
+      return {
+        message: "error deleting webhook :(",
+        success: false,
+        error
+      }
+    }
   }
 
   async findMany(filters: Partial<CreateCheckoutDTO>) {
