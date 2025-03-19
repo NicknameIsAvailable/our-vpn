@@ -47,7 +47,12 @@ export class CheckoutService {
     try {
       const payment = await checkout.createPayment(payload, createCheckoutDto.idempotence_key)
 
-      const formattedPayload = Object.entries(createCheckoutDto.payload)
+      const payloadToFormat = {
+        ...createCheckoutDto.payload,
+        ts: Date.now() / 1000
+      }
+
+      const formattedPayload = Object.entries(payloadToFormat)
         .filter(([_, value]) => value !== undefined && value !== null)
         .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
         .join("&");

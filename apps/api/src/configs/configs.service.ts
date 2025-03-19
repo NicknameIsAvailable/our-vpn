@@ -167,7 +167,7 @@ export class ConfigsService {
         config: JSON.stringify(config),
         vlessUrl: vlessUrls.find(url => url.includes(email)),
         locationId: location.id,
-        promoCodeId: promoCode ? promoCode.id : null,  // Если промокод найден, передаем его ID
+        promoCodeId: promoCode ? promoCode.id : null,
       },
       include: {
         promoCode: true,
