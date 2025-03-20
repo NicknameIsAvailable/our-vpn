@@ -1,3 +1,4 @@
+import { ICreatePayment, IPaymentMethodType } from "@a2seven/yoo-checkout";
 import { Checkout } from "types/checkout"
 
 export class CheckoutItemDTO {
@@ -18,6 +19,7 @@ export class CheckoutPayloadDTO {
 
 export class CreateCheckoutDTO implements Checkout {
     amount: number;
+    payment_method?: IPaymentMethodType;
     idempotence_key: string;
     items: CheckoutItemDTO[];
     email: string;

@@ -20,7 +20,7 @@ export class HookService {
 
       console.log({ invoice, paymentInfo })
 
-      if (invoice.configId || invoice.paid || invoice.status === "succeeded") return;
+      if (invoice.configId || paymentInfo.object.paid || paymentInfo.object.status === "succeeded") return;
 
       const config = await this.apiService.createConfig({ ...sendConfigDto, isTrial: String(sendConfigDto.isTrial) === "true" });
 

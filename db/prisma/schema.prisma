@@ -10,6 +10,7 @@ datasource db {
 
 model Location {
   id          String   @id @default(uuid())
+  label       String   @default("")
   name        String
   country     String
   city        String?
@@ -38,6 +39,14 @@ model Invoice {
   updated_at       DateTime @default(now()) @updatedAt
 }
 
+model TgUser {
+  id         Int      @unique
+  username   String   @default("anon")
+  configs    Config[]
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
 model User {
   id         String   @id @default(uuid())
   email      String   @unique
@@ -51,8 +60,6 @@ model Config {
   id          String     @id @default(uuid())
   name        String
   isTrial     Boolean    @default(false)
-  userId      String
-  username    String
   invoiceId   String?
   invoice     Invoice?   @relation("InvoiceConfig", fields: [invoiceId], references: [id])
   promoCodeId String?
@@ -63,6 +70,8 @@ model Config {
   vlessUrl    String
   created_at  DateTime   @default(now())
   updated_at  DateTime   @default(now()) @updatedAt
+  TgUser      TgUser?    @relation(fields: [tgUserId], references: [id])
+  tgUserId    Int?
 
   @@map("VlessConfig")
 }
