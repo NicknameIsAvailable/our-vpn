@@ -47,54 +47,19 @@ export class CheckoutService {
     try {
       const payment = await checkout.createPayment(payload, createCheckoutDto.idempotence_key)
 
-      const payloadToFormat = {
-        ...createCheckoutDto.payload,
-        ts: Date.now() / 1000
-      }
-
-      const formattedPayload = Object.entries(payloadToFormat)
-        .filter(([_, value]) => value !== undefined && value !== null)
-        .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
-        .join("&");
-
-      const onSuccess = await checkout.createWebHook({
-        event: 'payment.succeeded',
-        url: `${process.env.PROJECT_URL}/bot/hook/send-config?${formattedPayload}`
-      })
-
-      // const onCancel = await checkout.createWebHook({
-      //   event: 'payment.canceled',
-      //   url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/cancel${formattedPayload}`
-      // })
-
-      // console.log({onCancel})
-
-      // const onWaiting = await checkout.createWebHook({
-      //   event: 'payment.waiting_for_capture',
-      //   url: `${process.env.PROJECT_URL}/api/v1/checkout/hook/waiting${formattedPayload}`
-      // })
-
-      // console.log({onWaiting})
-
       const data = await this.prisma.invoice.create({
         data: {
           id: payment.id,
           amount: Number(payment.amount.value),
-          webhookId: onSuccess.id,
           status: payment.status,
           paid: payment.paid,
           confirmation_url: payment.confirmation.confirmation_url,
         }
       });
 
-      console.log({ data })
-
       return {
         payment,
-        data,
-        onSuccess,
-        // onCancel,
-        // onWaiting
+        data
       }
     } catch (e) {
       console.error(e)
@@ -128,7 +93,22 @@ export class CheckoutService {
   }
 
   async findById(id: string) {
-    return this.prisma.invoice.findUnique({ where: { id } })
+    const entity = await checkout.getPayment(id)
+
+    const data = await this.prisma.invoice.update({
+      data: {
+        status: entity.status,
+        paid: entity.paid,
+      },
+      where: {
+        id
+      }
+    })
+
+    return {
+      data,
+      entity
+    }
   }
 
   async update(id: string, dto: Partial<UpdateCheckoutDto>) {

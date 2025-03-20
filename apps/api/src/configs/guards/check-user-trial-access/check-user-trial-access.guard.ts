@@ -1,5 +1,5 @@
 import { PrismaService } from '@nash-vpn/db';
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 @Injectable()
@@ -9,24 +9,20 @@ export class CheckUserTrialAccessGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     console.log('CheckUserTrialAccessGuard triggered');
 
-    const userIdField = this.reflector.get<string>('check-user-trial-access', context.getHandler());
-    if (!userIdField) return true;
-
     const request = context.switchToHttp().getRequest();
-    const { [userIdField]: userId, isTrial } = request.body;
+    const tgUserId = request.headers['tguserid'];
+    const { isTrial } = request.body;
 
-    console.log({ userId, isTrial });
-
-    // Если isTrial не передан или false — скипаем проверку
     if (!isTrial) return true;
 
-    if (!userId) {
-      throw new ForbiddenException('User ID is missing in request body');
+    if (!tgUserId) {
+      throw new BadRequestException('tgUserId не найден в заголовках');
     }
 
     const userConfig = await this.prisma.config.findFirst({
       where: {
-        AND: [{ userId: userId }, { isTrial: true }]
+        tgUserId,
+        isTrial: true
       }
     });
 

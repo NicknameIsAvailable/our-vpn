@@ -1,4 +1,5 @@
 export class CreateLocationDto {
+  label: string;
   name: string;
   country: string;
   city: string;

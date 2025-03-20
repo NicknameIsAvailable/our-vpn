@@ -3,6 +3,7 @@ import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { CheckUserTrialAccess } from './decorators/check-user-trial-access.decorator';
 import { CheckUserTrialAccessGuard } from './guards/check-user-trial-access/check-user-trial-access.guard';
+import { TgUserId } from '../tg-user/decorators/tg-user-id.decorator';
 
 @Controller('configs')
 export class ConfigsController {
@@ -10,17 +11,17 @@ export class ConfigsController {
 
   @Post()
   @UseGuards(CheckUserTrialAccessGuard)
-  @CheckUserTrialAccess('userId')
+  @CheckUserTrialAccess('tgUserId')
   // @Auth()
-  async create(@Body() createConfigDto: CreateConfigDto) {
-    const res = await this.configsService.create(createConfigDto)
+  async create(@TgUserId('tgUserId') tgUserId: number, @Body() createConfigDto: CreateConfigDto) {
+    const res = await this.configsService.create({...createConfigDto, tgUserId})
 
     return {...res, config: JSON.parse(String(res.config))};
   }
 
   @Get()
-  async findAll(@Query("userId") userId?: string) {
-    const res = await this.configsService.findAll(userId);
+  async findAll(@TgUserId('tgUserId') tgUserId?: number) {
+    const res = await this.configsService.findAll(tgUserId);
     return res;
   }
 

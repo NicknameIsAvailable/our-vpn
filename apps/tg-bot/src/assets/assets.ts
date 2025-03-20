@@ -221,7 +221,35 @@ export const instructions: Instruction[] = [
   }
 ];
 
-export const prices: LabeledPrice[] = [
+export const stagePrices: LabeledPrice[] = [
+  {
+    label: "Пробная подписка на 3 дня",
+    amount: 0,
+    key: "trial"
+  },
+  {
+    label: "1 месяц подписки",
+    amount: 1 * 100,
+    key: "1m",
+  },
+  {
+    label: "3 месяца подписки",
+    amount: 1 * 100,
+    key: "3m",
+  },
+  {
+    label: "6 месяцев подписки",
+    amount: 1 * 100,
+    key: "6m",
+  },
+  {
+    label: "12 месяцев подписки",
+    amount: 1 * 100,
+    key: "12m",
+  }
+]
+
+export const prodPrices: LabeledPrice[] = [
   {
     label: "Пробная подписка на 3 дня",
     amount: 0,
@@ -248,3 +276,11 @@ export const prices: LabeledPrice[] = [
     key: "12m",
   }
 ]
+
+const getPrices = (): LabeledPrice[] => {
+  if (process.env.PRODUCTION === "true")
+    return prodPrices
+  return stagePrices
+}
+
+export const prices: LabeledPrice[] = getPrices()

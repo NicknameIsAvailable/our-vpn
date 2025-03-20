@@ -160,8 +160,7 @@ export class ConfigsService {
 
     return this.prisma.config.create({
       data: {
-        userId: String(createConfigDto.userId),
-        username: createConfigDto.username || `anon-${createConfigDto.userId}`,
+        tgUserId: createConfigDto.tgUserId,
         name: createConfigDto.name,
         isTrial: createConfigDto.isTrial,
         config: JSON.stringify(config),
@@ -184,9 +183,9 @@ export class ConfigsService {
     });
   }
 
-  async findAll(userId?: string) {
+  async findAll(tgUserId?: number) {
     return this.prisma.config.findMany({
-      where: userId ? { userId } : undefined,
+      where: tgUserId ? { tgUserId } : undefined,
       include: {
         location: {
           select: {

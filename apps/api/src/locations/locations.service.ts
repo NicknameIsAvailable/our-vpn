@@ -64,6 +64,7 @@ export class LocationsService {
 
     return locations.map(location => ({
       id: location.id,
+      label: location.label,
       name: location.name,
       country: location.country,
       city: location.city,

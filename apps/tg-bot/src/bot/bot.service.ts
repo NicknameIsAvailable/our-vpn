@@ -283,41 +283,42 @@ export class BotService {
       botFunctions.getServers(ctx, apiService)
     })
 
-    this.bot.command('auth', async (ctx) => {
-      await ctx.reply('Введите ваш email:');
+  //   this.bot.command('auth', async (ctx) => {
+  //     await ctx.reply('Введите ваш email:');
 
-      this.bot.on('text', async (messageCtx) => {
-        const email = messageCtx.message.text;
+  //     this.bot.on('text', async (messageCtx) => {
+  //       const email = messageCtx.message.text;
 
-        await messageCtx.reply('Введите ваш пароль:');
+  //       await messageCtx.reply('Введите ваш пароль:');
 
-        this.bot.on('text', async (passwordCtx) => {
-          const password = passwordCtx.message.text;
+  //       this.bot.on('text', async (passwordCtx) => {
+  //         const password = passwordCtx.message.text;
 
-          try {
-            const authResponse = await this.authenticateUser(email, password);
+  //         try {
+  //           const authResponse = await this.authenticateUser(email, password);
 
-            if (authResponse) {
-              await passwordCtx.reply(`Вы успешно авторизовались! Токен: ${authResponse.token}`);
-            } else {
-              await passwordCtx.reply('Не удалось авторизоваться. Проверьте email и пароль.');
-            }
-          } catch (error) {
-            console.error(error);
-            await passwordCtx.reply('Произошла ошибка при авторизации.');
-          }
-        });
-      });
-    });
-  }
+  //           if (authResponse) {
+  //             await passwordCtx.reply(`Вы успешно авторизовались! Токен: ${authResponse.token}`);
+  //           } else {
+  //             await passwordCtx.reply('Не удалось авторизоваться. Проверьте email и пароль.');
+  //           }
+  //         } catch (error) {
+  //           console.error(error);
+  //           await passwordCtx.reply('Произошла ошибка при авторизации.');
+  //         }
+  //       });
+  //     });
+  //   });
+  // }
 
-  async authenticateUser(email: string, password: string) {
-    try {
-      const response = await this.apiService.authenticateUser(email, password);
-      return response.data;
-    } catch (error) {
-      console.error('Ошибка авторизации', error);
-      return null;
-    }
+  // async authenticateUser(email: string, password: string) {
+  //   try {
+  //     const response = await this.apiService.authenticateUser(email, password);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Ошибка авторизации', error);
+  //     return null;
+  //   }
+  // }
   }
 }

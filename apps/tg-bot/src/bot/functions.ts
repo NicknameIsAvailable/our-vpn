@@ -73,7 +73,7 @@ export class BotFunctions {
 
       const userId = String(ctx.from.id);
       const username = ctx.from.username
-      const locations = await this.apiService.getLocations();
+      const locations = await this.apiService.getLocations(ctx);
       if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
       const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
@@ -116,7 +116,7 @@ export class BotFunctions {
         }
       }
 
-      const invoice = await this.apiService.createInvoice(invoiceData)
+      const invoice = await this.apiService.createInvoice(ctx, invoiceData)
 
       ctx.reply(`Вы выбрали ${price.label} \n Для оплаты нажмите кнопку ниже 👇`, {
         parse_mode: "MarkdownV2",
@@ -131,20 +131,46 @@ export class BotFunctions {
           ]
         }
       })
+
+      await this.startCheckoutPolling(ctx, invoice.data.id)
+  }
+
+  async startCheckoutPolling(ctx: MyContext, invoiceId: string) {
+    let elapsed = 0;
+    const interval = 5000;
+    const maxTime = 10 * 60 * 1000;
+
+    const timer = setInterval(async () => {
+      console.log(`Checking invoice: ${invoiceId}`);
+      const invoice = await this.apiService.findInvoice(ctx, invoiceId);
+
+      console.log({ invoice })
+
+      if (invoice.entity.paid && invoice.entity.status === "succeeded") {
+        clearInterval(timer);
+        this.generateConfig(ctx)
+      }
+
+      elapsed += interval;
+      if (elapsed >= maxTime) {
+        clearInterval(timer);
+        console.log(`Stop checking invoice: ${invoiceId}`);
+      }
+    }, interval);
   }
 
   async chooseLocation(ctx: MyContext) {
     try {
-      const locations = await this.apiService.getLocations();
+      const locations = await this.apiService.getLocations(ctx);
       if (locations.length === 0) {
         return await ctx.reply("⚠️ Нет доступных серверов.");
       }
 
-      const message = await ctx.reply("🌍 Выберите страну сервера:", {
+      const message = await ctx.reply("🌍 Выберите страну для подключения:", {
         reply_markup: {
           inline_keyboard: locations.map(location => ([
             {
-              text: `${countryToEmoji(location.country)} ${location.city}`,
+              text: `${countryToEmoji(location.country)} ${location.label}`,
               callback_data: `choose_location_${location.id}`
             }
           ]))
@@ -195,7 +221,7 @@ export class BotFunctions {
 
   getConfigs = async (ctx: Context) => {
     const { chat } = ctx;
-    const configs = await this.apiService.getUserConfigs(String(chat.id));
+    const configs = await this.apiService.getUserConfigs(ctx as MyContext);
 
     if (configs.length === 0) {
       return ctx.reply(
@@ -270,7 +296,7 @@ export class BotFunctions {
       }
 
       const configId = callbackData.replace("show_config_", "");
-      const client = await this.apiService.getConfigById(configId);
+      const client = await this.apiService.getConfigById(ctx as MyContext, configId);
 
       if (!client) {
         console.log('Config not found');
@@ -310,7 +336,7 @@ export class BotFunctions {
     update_id: number;
   }>, apiService: ApiService) {
     try {
-      const locations = await apiService.getLocations();
+      const locations = await apiService.getLocations(ctx as MyContext);
       if (locations.length > 0) {
         await ctx.reply("🖥️ Вот актуальный список наших серверов:", {
           reply_markup: {
@@ -332,9 +358,9 @@ export class BotFunctions {
   async generateConfig(ctx: MyContext) {
     try {
       const payment = ctx.session?.payment;
-      const userId = String(ctx.from.id);
+      const tgUserId = ctx.from.id;
       const username = ctx.from.username
-      const locations = await this.apiService.getLocations();
+      const locations = await this.apiService.getLocations(ctx);
       const data = (ctx as any).callbackQuery?.data;
       if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
@@ -366,8 +392,8 @@ export class BotFunctions {
 
       await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
 
-      const config = await this.apiService.createConfig({
-        userId,
+      const config = await this.apiService.createConfig(ctx, {
+        tgUserId: tgUserId,
         username,
         months,
         isTrial,
@@ -391,7 +417,7 @@ export class BotFunctions {
         return;
       }
 
-      const qrPath = `/tmp/qrcode_${userId}.png`;
+      const qrPath = `/tmp/qrcode_${tgUserId}.png`;
 
       if (config)
         try {

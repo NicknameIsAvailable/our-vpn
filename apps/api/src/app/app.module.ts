@@ -13,6 +13,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CheckUserTrialAccessGuard } from '../configs/guards/check-user-trial-access/check-user-trial-access.guard';
 import { PromoCodeModule } from '../promo-code/promo-code.module';
 import { CheckoutModule } from '../checkout/checkout.module';
+import { TgUserModule } from '../tg-user/tg-user.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CheckoutModule } from '../checkout/checkout.module';
     ConfigsModule,
     TelegramModule,
     PromoCodeModule,
+    TgUserModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
