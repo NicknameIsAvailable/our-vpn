@@ -67,6 +67,7 @@ export class LocationsService {
       label: location.label,
       name: location.name,
       country: location.country,
+      comment: location.comment,
       city: location.city,
       coordinates: JSON.parse(location.coordinates),
     }));

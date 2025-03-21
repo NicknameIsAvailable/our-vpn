@@ -1,3 +1,5 @@
+import { IPaymentMethodType } from "@a2seven/yoo-checkout";
+
 export interface CheckoutItem {
   amount: number;
   description: string;
@@ -17,6 +19,7 @@ export interface CheckoutPayload {
 export interface Checkout {
   amount: number;
   idempotence_key: string;
+  paymentMethod: IPaymentMethodType;
   items: CheckoutItem[];
   email: string;
   username: string;

@@ -155,15 +155,18 @@ export class ConfigsService {
     const email = this.generateRandomEmail();
     const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } });
 
+    console.log({ expiryTime })
+
     const config: any = await this.generateConfig(location, expiryTime, email, createConfigDto.name);
     const vlessUrls = this.getVlessLinks(config, location);
 
     return this.prisma.config.create({
       data: {
-        tgUserId: createConfigDto.tgUserId,
+        tgUserId: Number(createConfigDto.tgUserId),
         name: createConfigDto.name,
         isTrial: createConfigDto.isTrial,
         config: JSON.stringify(config),
+        expiryTime,
         vlessUrl: vlessUrls.find(url => url.includes(email)),
         locationId: location.id,
         promoCodeId: promoCode ? promoCode.id : null,

@@ -4,5 +4,6 @@ export interface ClientLocation {
   name: string;
   country: string;
   city: string;
+  comment: string;
   coordinates: [number, number]
 }

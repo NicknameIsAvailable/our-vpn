@@ -28,7 +28,7 @@ export class CheckoutService {
         currency: 'RUB'
       },
       payment_method_data: {
-          type: createCheckoutDto.payment_method || "sbp"
+          type: createCheckoutDto.paymentMethod
       },
       capture: true,
       receipt: {

@@ -14,11 +14,14 @@ import { randomUUID } from 'crypto';
 import { osList } from '../assets/assets';
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
 import { Checkout } from 'types/checkout';
+import { paymentMethods } from '../assets/payment-methods';
 
 @Injectable()
 export class BotFunctions {
   private readonly providerToken = process.env.TELEGRAM_PAYMENT_TOKEN
   private readonly supportUrl = process.env.TELEGRAM_SUPPORT_URL;
+  private timers = new Map<string, NodeJS.Timeout>();
+
   constructor(
     @InjectBot() private bot: Telegraf<MyContext>,
     private readonly apiService: ApiService,
@@ -34,12 +37,13 @@ export class BotFunctions {
 
   async handleSubscribe(ctx: Context<Update.CallbackQueryUpdate>, data: string) {
     try {
+      this.handleCancelPayment(ctx as MyContext);
       (ctx as any).session = {
         ...(ctx as any).session,
         location: data
       }
 
-      await ctx.reply("Выберите вариант подписки", {
+      await ctx.editMessageText("Выберите вариант подписки", {
         reply_markup: {
           inline_keyboard: prices.map((price) => ([
             {
@@ -55,53 +59,87 @@ export class BotFunctions {
     }
   }
 
+  async handleChoosePaymentMethod(ctx: MyContext, data: string) {
+    this.handleCancelPayment(ctx as MyContext);
+
+    const currentPrice = prices.find(price => `choose_price_${price.key}` === data)
+    const isTrial = currentPrice && currentPrice.key === "trial"
+
+    console.log({ isTrial, currentPrice })
+
+    if (isTrial) {
+      ctx.session = {
+        ...ctx.session,
+        payment: {
+          invoice_payload: "trial",
+          total_amount: 0,
+          currency: "RUB"
+        }
+      }
+      this.generateConfig(ctx)
+      return;
+    }
+
+    console.log({ session: ctx.session })
+
+    ctx.session = {
+      ...ctx.session,
+      currentPrice,
+      payment: {
+        invoice_payload: currentPrice.key,
+        total_amount: currentPrice.amount,
+        currency: "RUB"
+      }
+    }
+
+    ctx.editMessageText("Выберите способ оплаты", {
+      reply_markup: {
+        inline_keyboard: paymentMethods.map(method => ([{
+          text: method.label,
+          callback_data: `choose_payment_method_${method.value}`
+        }]))
+      }
+    })
+  }
+
   async handlePayment(ctx: MyContext, data: string) {
-    // if (this.isProd) {
+      this.handleCancelPayment(ctx as MyContext);
 
-      const price = prices.find(price => `choose_price_${price.key}` === data)
-      console.log({price, data})
-
-      // if (price.key === "trial") {
-      //   await this.generateConfig(ctx)
-      //   ctx.session.payment = {
-      //     invoice_payload: "trial",
-      //     total_amount: 0,
-      //     currency: ""
-      //   }
-      //   return
-      // }
+      const { currentPrice } = ctx.session
 
       const userId = String(ctx.from.id);
       const username = ctx.from.username
       const locations = await this.apiService.getLocations(ctx);
-      if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
       const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
-      console.log({ selectedLocation })
+      const selectedPaymentMethod = paymentMethods.find(method => `choose_payment_method_${method.value}` === data)
+
+      console.log({ selectedLocation, selectedPaymentMethod })
       if (!selectedLocation) return;
 
       let months = 1;
       let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
 
       const idempotenceKey = randomUUID();
-      months = this.getSubscriptionLength(`vpn_${price.key}`);
-      configName = `${username} ${`vpn_${price.key}_${messageId}`}`;
+      months = this.getSubscriptionLength(`vpn_${currentPrice.key}`);
+      configName = `${username} ${`vpn_${currentPrice.key}_${messageId}`}`;
 
-      const isTrial = price && price.key === "trial"
+      const isTrial = currentPrice && currentPrice.key === "trial"
 
       if (isTrial) {
         this.generateConfig(ctx)
         return;
       }
       const invoiceData: Checkout = {
-        amount: price.amount,
+        amount: currentPrice.amount,
         idempotence_key: idempotenceKey,
+        paymentMethod: selectedPaymentMethod.value,
         username: ctx.from.username || `anon-${ctx.from.id}`,
         email: `${ctx.from.first_name}@mail.com`,
         items: [
           {
-            description: price.label,
-            amount: price.amount
+            description: currentPrice.label,
+            amount: currentPrice.amount
           }
         ],
         payload: {
@@ -109,7 +147,7 @@ export class BotFunctions {
           username,
           months,
           isTrial,
-          price: price.amount / 100,
+          price: currentPrice.amount / 100,
           name: configName,
           locationId: selectedLocation.id,
           promoCode: ""
@@ -118,7 +156,8 @@ export class BotFunctions {
 
       const invoice = await this.apiService.createInvoice(ctx, invoiceData)
 
-      ctx.reply(`Вы выбрали ${price.label} \n Для оплаты нажмите кнопку ниже 👇`, {
+      ctx.editMessageText(`Вы выбрали ${currentPrice.label}`)
+      const message = await ctx.reply(`Для оплаты нажмите кнопку ниже 👇`, {
         parse_mode: "MarkdownV2",
         reply_markup: {
           inline_keyboard: [
@@ -127,12 +166,39 @@ export class BotFunctions {
                 text: "Оплатить",
                 url: invoice.data.confirmation_url
               }
+            ],
+            [
+              {
+                text: "Отмена",
+                callback_data: "cancel_payment"
+              }
             ]
           ]
         }
       })
 
+      ctx.session = {
+        ...ctx.session,
+        paymentMessageId: message.message_id,
+        currentInvoiceId: invoice.data.id
+      }
+
       await this.startCheckoutPolling(ctx, invoice.data.id)
+  }
+
+  async handleCancelPayment(ctx: MyContext) {
+    if (!ctx.session?.currentInvoiceId) return;
+    this.stopCheckoutPolling(ctx.session.currentInvoiceId)
+    try {
+      await ctx.telegram.editMessageText(
+        ctx.chat.id,
+        ctx.session.paymentMessageId,
+        undefined,
+        `❌ Оплата отменена`
+      );
+    } catch (error) {
+      console.error("Ошибка при редактировании сообщения:", error);
+    }
   }
 
   async startCheckoutPolling(ctx: MyContext, invoiceId: string) {
@@ -140,27 +206,40 @@ export class BotFunctions {
     const interval = 5000;
     const maxTime = 10 * 60 * 1000;
 
+    if (this.timers.has(invoiceId)) return;
+
     const timer = setInterval(async () => {
       console.log(`Checking invoice: ${invoiceId}`);
       const invoice = await this.apiService.findInvoice(ctx, invoiceId);
 
-      console.log({ invoice })
-
       if (invoice.entity.paid && invoice.entity.status === "succeeded") {
-        clearInterval(timer);
-        this.generateConfig(ctx)
+        this.stopCheckoutPolling(invoiceId);
+        this.generateConfig(ctx);
       }
 
       elapsed += interval;
       if (elapsed >= maxTime) {
-        clearInterval(timer);
+        this.stopCheckoutPolling(invoiceId);
         console.log(`Stop checking invoice: ${invoiceId}`);
       }
     }, interval);
+
+    this.timers.set(invoiceId, timer);
+  }
+
+  stopCheckoutPolling(invoiceId: string) {
+    const timer = this.timers.get(invoiceId);
+    if (timer) {
+      clearInterval(timer);
+      this.timers.delete(invoiceId);
+      console.log(`Timer for ${invoiceId} stopped.`);
+    }
   }
 
   async chooseLocation(ctx: MyContext) {
     try {
+      this.handleCancelPayment(ctx as MyContext);
+
       const locations = await this.apiService.getLocations(ctx);
       if (locations.length === 0) {
         return await ctx.reply("⚠️ Нет доступных серверов.");
@@ -170,7 +249,7 @@ export class BotFunctions {
         reply_markup: {
           inline_keyboard: locations.map(location => ([
             {
-              text: `${countryToEmoji(location.country)} ${location.label}`,
+              text: `${countryToEmoji(location.country)} ${location.label} ${location.comment}`,
               callback_data: `choose_location_${location.id}`
             }
           ]))
@@ -178,9 +257,10 @@ export class BotFunctions {
       });
 
       if (!ctx.session) {
-        ctx.session = { locationMessageId: message.message_id };
+        ctx.session = { locationMessageId: message.message_id, subscriptionMessageId: message.message_id };
       } else {
         ctx.session.locationMessageId = message.message_id;
+        ctx.session.subscriptionMessageId = message.message_id;
       }
 
     } catch (error) {
@@ -200,6 +280,8 @@ export class BotFunctions {
     update_id: number;
   }>,
   ) {
+    this.handleCancelPayment(ctx as MyContext);
+
     const text = ctx.message.text;
 
     if (text === "⚙ Получить ссылки для подключения" || text.includes("/connections")) {
@@ -220,7 +302,6 @@ export class BotFunctions {
   }
 
   getConfigs = async (ctx: Context) => {
-    const { chat } = ctx;
     const configs = await this.apiService.getUserConfigs(ctx as MyContext);
 
     if (configs.length === 0) {
@@ -250,6 +331,8 @@ export class BotFunctions {
 
   async showGuide(ctx: Context) {
     try {
+      this.handleCancelPayment(ctx as MyContext);
+
       await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь! 💡");
 
       await ctx.reply("🖥️ Выберите свою ОС: \n Какие у тебя предпочтения? 🤔 Мы тебе поможем с настройкой! 🚀", {
@@ -269,13 +352,13 @@ export class BotFunctions {
   }
 
   showUserConfig = (client: any) => {
-    const expiryTime = (client as any).config.obj.expiryTime === 0
+    const expiryTime = (client as any).expiryTime === 0
     ? "Бесконечный"
-    : (client as any).config.obj.expiryTime
-      ? moment(Number((client as any).config.obj.expiryTime)).format("DD.MM.YYYY HH:mm")
+    : (client as any).expiryTime
+      ? moment(Number((client as any).expiryTime)).format("DD.MM.YYYY HH:mm")
       : "Не указано";
 
-    console.log({expiryTime: (client as any).config.obj.expiryTime})
+    console.log({client})
 
     const caption = `*${escapeMarkdownV2(client.name)}*\n`
     + `⏳ *Дата окончания*: ${escapeMarkdownV2(expiryTime)}\n`
@@ -289,6 +372,8 @@ export class BotFunctions {
 
   showConfig = async (ctx: Context) => {
     try {
+      this.handleCancelPayment(ctx as MyContext);
+
       const callbackData = (ctx.callbackQuery as any)?.data;
       if (!callbackData) {
         console.log('No callback data');
@@ -336,6 +421,8 @@ export class BotFunctions {
     update_id: number;
   }>, apiService: ApiService) {
     try {
+      this.handleCancelPayment(ctx as MyContext);
+
       const locations = await apiService.getLocations(ctx as MyContext);
       if (locations.length > 0) {
         await ctx.reply("🖥️ Вот актуальный список наших серверов:", {
@@ -376,22 +463,20 @@ export class BotFunctions {
         console.error('Ошибка при удалении сообщения:', error);
       }
 
-      if (this.isProd) {
-        if (!payment) {
-          return await ctx.reply('⚠️ Оплата обязательна для использования сервиса.');
-        }
-
-        months = this.getSubscriptionLength(payment.invoice_payload);
-        configName = `${username} ${payment.invoice_payload}`;
-        await ctx.reply('💸 Спасибо за оплату! 🙏');
-      } else {
-        await ctx.reply('⚠️ Тестовый режим активен. Оплата не требуется.');
-      }
+      console.log({ payment })
 
       const isTrial = payment && payment.invoice_payload === "trial"
 
-      await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.city}...`);
 
+      months = isTrial ? 1 : this.getSubscriptionLength(payment.invoice_payload);
+      configName = isTrial ? `${username} trial` : `${username} ${payment.invoice_payload}`;
+
+      if (!isTrial)
+        await ctx.reply('💸 Спасибо за оплату! 🙏')
+
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.label}...`);
+
+      console.log("✅ Перед вызовом createConfig");
       const config = await this.apiService.createConfig(ctx, {
         tgUserId: tgUserId,
         username,
@@ -403,19 +488,22 @@ export class BotFunctions {
         promoCode: ""
       });
 
-      if ((config as any).response && (config as any).response.data.statusCode === 403) {
-        await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
-          reply_markup: {
-            inline_keyboard: [[
-              {
-                text: "🔁 Попробовать еще раз",
-                callback_data: "subscribe_command"
-              }
-            ]]
-          }
-        });
-        return;
-      }
+      console.log({ config, session4: ctx.session })
+
+      console.log("✅ Перед проверкой 403");
+      // if ((config as any) && (config as any).response.status === 403) {
+      //   await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
+      //     reply_markup: {
+      //       inline_keyboard: [[
+      //         {
+      //           text: "🔁 Попробовать еще раз",
+      //           callback_data: "subscribe_command"
+      //         }
+      //       ]]
+      //     }
+      //   });
+      //   return;
+      // }
 
       const qrPath = `/tmp/qrcode_${tgUserId}.png`;
 
@@ -437,10 +525,22 @@ export class BotFunctions {
             console.log({deleted: qrPath})
           });
         }
-    } catch (e: any) {
-      console.log({ e: e.response })
+    } catch (error: any) {
+      if (error.response?.status === 403) {
+        await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
+          reply_markup: {
+            inline_keyboard: [[
+              {
+                text: "🔁 Попробовать еще раз",
+                callback_data: "subscribe_command"
+              }
+            ]]
+          }
+        });
+        return;
+      }
 
-      console.error("Ошибка при генерации подключения:", e);
+      console.error("Ошибка при генерации подключения:", error);
       await ctx.reply("⚠️ Произошла ошибка. Свяжитесь с поддержкой.", {
         reply_markup: {
           inline_keyboard: [

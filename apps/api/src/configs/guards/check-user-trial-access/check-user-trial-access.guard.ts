@@ -10,7 +10,7 @@ export class CheckUserTrialAccessGuard implements CanActivate {
     console.log('CheckUserTrialAccessGuard triggered');
 
     const request = context.switchToHttp().getRequest();
-    const tgUserId = request.headers['tguserid'];
+    const tgUserId = Number(request.headers['tguserid']);
     const { isTrial } = request.body;
 
     if (!isTrial) return true;
@@ -21,7 +21,7 @@ export class CheckUserTrialAccessGuard implements CanActivate {
 
     const userConfig = await this.prisma.config.findFirst({
       where: {
-        tgUserId,
+        tgUserId: tgUserId,
         isTrial: true
       }
     });

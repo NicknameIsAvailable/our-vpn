@@ -19,7 +19,7 @@ export class CheckoutPayloadDTO {
 
 export class CreateCheckoutDTO implements Checkout {
     amount: number;
-    payment_method?: IPaymentMethodType;
+    paymentMethod: IPaymentMethodType;
     idempotence_key: string;
     items: CheckoutItemDTO[];
     email: string;

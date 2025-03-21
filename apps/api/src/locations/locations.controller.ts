@@ -20,6 +20,8 @@ export class LocationsController {
   @Get()
   findAll(@Query() filterDto: FilterLocationDto, @Req() request: any) {
     const {user} = request;
+    console.log({ user})
+
     if (user)
       return this.locationsService.findAll(filterDto);
     return this.locationsService.findAllForClient(filterDto);

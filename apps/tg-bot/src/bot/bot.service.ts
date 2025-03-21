@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Context, MemorySessionStore, Telegraf, session } from 'telegraf';
 import { InjectBot } from 'nestjs-telegraf';
-import { clients, instructions, osList } from '../assets/assets';
+import { clients, instructions, LabeledPrice, osList } from '../assets/assets';
 import { ApiService } from '../api/api.service';
 import { BotFunctions } from './functions';
 import path from 'path';
@@ -10,7 +10,11 @@ import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 interface BotSession {
   locationMessageId?: number;
+  subscriptionMessageId?: number;
+  paymentMessageId?: number;
+  currentPrice?: LabeledPrice;
   location?: string;
+  currentInvoiceId?: string;
   payment?: {
     invoice_payload: string;
     total_amount: number;
@@ -106,8 +110,23 @@ export class BotService {
         return;
       }
 
+      if (data && data === "help") {
+        await this.botFunctions.showGuide(ctx as any);
+        return
+      }
+
       if (data && data.startsWith("choose_price_")) {
+        await botFunctions.handleChoosePaymentMethod(ctx, data)
+        return;
+      }
+
+      if (data && data.startsWith("choose_payment_method_")) {
         await botFunctions.handlePayment(ctx, data)
+        return;
+      }
+
+      if (data && data.startsWith("cancel_payment")) {
+        await botFunctions.handleCancelPayment(ctx)
         return;
       }
 
@@ -259,24 +278,6 @@ export class BotService {
         console.error('Ошибка предавторизации платежа:', error);
         await ctx.reply('🚫 Ошибка предавторизации платежа! \n Подождите немного, возможно, есть проблемы с сервером. 💥');
       }
-    });
-
-    this.bot.on("message", async (ctx: any) => {
-      if (!("successful_payment" in ctx.message)) return;
-
-      const paymentInfo = ctx.message.successful_payment;
-
-      ctx.session = {
-        ...ctx.session,
-        payment: {
-          invoice_payload: paymentInfo.invoice_payload,
-          total_amount: paymentInfo.total_amount,
-          currency: paymentInfo.currency
-        }
-      };
-
-      await ctx.reply("💸 Оплата прошла успешно! Теперь выбери локацию для VPN.");
-      await botFunctions.chooseLocation(ctx);
     });
 
     this.bot.command('servers', async (ctx) => {
