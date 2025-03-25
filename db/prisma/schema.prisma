@@ -1,0 +1,89 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x", "linux-arm64-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Location {
+  id          String   @id @default(uuid())
+  label       String   @default("")
+  comment     String   @default("")
+  name        String
+  country     String
+  city        String?
+  ip          String
+  coordinates String
+  user        String
+  url         String
+  host        String
+  port        Int
+  password    String
+  configs     Config[] @relation("LocationConfig")
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now()) @updatedAt
+}
+
+model Invoice {
+  id               String   @id
+  amount           Int
+  configId         String?
+  Config           Config[] @relation("InvoiceConfig")
+  status           String
+  paid             Boolean
+  confirmation_url String
+  created_at       DateTime @default(now())
+  updated_at       DateTime @default(now()) @updatedAt
+}
+
+model TgUser {
+  id         BigInt   @unique
+  username   String   @default("anon")
+  configs    Config[]
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  nickname   String   @unique
+  password   String
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+}
+
+model Config {
+  id          String     @id @default(uuid())
+  name        String
+  isTrial     Boolean    @default(false)
+  invoiceId   String?
+  invoice     Invoice?   @relation("InvoiceConfig", fields: [invoiceId], references: [id])
+  promoCodeId String?
+  promoCode   PromoCode? @relation("PromoCodeConfig", fields: [promoCodeId], references: [id])
+  locationId  String
+  location    Location   @relation("LocationConfig", fields: [locationId], references: [id])
+  config      Json
+  vlessUrl    String
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @default(now()) @updatedAt
+  tgUserId    BigInt?
+  expiryTime  BigInt     @default(0)
+  TgUser      TgUser?    @relation(fields: [tgUserId], references: [id])
+
+  @@map("VlessConfig")
+}
+
+model PromoCode {
+  id              String   @id @default(uuid())
+  code            String   @unique
+  name            String
+  description     String
+  discountPercent Int
+  configs         Config[] @relation("PromoCodeConfig")
+  created_at      DateTime @default(now())
+  updated_at      DateTime @default(now()) @updatedAt
+}

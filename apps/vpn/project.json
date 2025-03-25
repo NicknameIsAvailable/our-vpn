@@ -1,0 +1,76 @@
+{
+  "name": "vpn",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/vpn/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "dist/apps/vpn",
+        "format": ["cjs"],
+        "bundle": false,
+        "main": "apps/vpn/src/main.ts",
+        "tsConfig": "apps/vpn/tsconfig.app.json",
+        "assets": ["apps/vpn/src/assets"],
+        "generatePackageJson": true,
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "vpn:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "vpn:build:development"
+        },
+        "production": {
+          "buildTarget": "vpn:build:production"
+        }
+      }
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker build -t vpn ."
+      }
+    },
+    "docker-run": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker run --rm -p 3000:3000 vpn"
+      }
+    },
+    "docker-compose-up": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "docker-compose up --build"
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "tg-bot": {
+      "type": "application",
+      "root": "apps/tg-bot",
+      "assets": [
+        {
+          "include": "assets/**/*",
+          "outDir": "dist/apps/tg-bot/assets"
+        }
+      ]
+    }
+  }
+}

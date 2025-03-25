@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@nash-vpn/db": ["db/src/index.ts"],
+      "@nash-vpn/api": ["apps/api/src/index.ts"],
+      "@nash-vpn/ui": ["apps/landing/libs/ui/src/index.ts"],
+      "@nash-vpn/xui": ["libs/xui/src/index.ts"],
+      "@nash-vpn/functions": ["functions"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}
