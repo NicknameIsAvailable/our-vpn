@@ -3,7 +3,8 @@ import { ConfigsService } from './configs.service';
 import { CreateConfigDto } from './dto/create-config.dto';
 import { CheckUserTrialAccess } from './decorators/check-user-trial-access.decorator';
 import { CheckUserTrialAccessGuard } from './guards/check-user-trial-access/check-user-trial-access.guard';
-import { TgUserId } from '../tg-user/decorators/tg-user-id.decorator';
+import { TgUserData } from '../tg-user/decorators/tg-user-id.decorator';
+import { TgUser } from '@prisma/client';
 
 @Controller('configs')
 export class ConfigsController {
@@ -13,15 +14,15 @@ export class ConfigsController {
   @UseGuards(CheckUserTrialAccessGuard)
   @CheckUserTrialAccess('tgUserId')
   // @Auth()
-  async create(@TgUserId('tgUserId') tgUserId: number, @Body() createConfigDto: CreateConfigDto) {
-    const res = await this.configsService.create({...createConfigDto, tgUserId})
+  async create(@TgUserData('user') user: TgUser, @Body() createConfigDto: CreateConfigDto) {
+    const res = await this.configsService.create({...createConfigDto, tgUserId: String(user.id)})
 
     return {...res, config: JSON.parse(String(res.config))};
   }
 
   @Get()
-  async findAll(@TgUserId('tgUserId') tgUserId?: number) {
-    const res = await this.configsService.findAll(tgUserId);
+  async findAll(@TgUserData('user') user?: TgUser) {
+    const res = await this.configsService.findAll(user.id);
     return res;
   }
 

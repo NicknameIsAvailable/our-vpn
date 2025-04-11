@@ -26,8 +26,13 @@ export class TgUserService {
     }));
   }
 
-  async findOne(id: number) {
-    const data = await this.prisma.tgUser.findUnique({ where: { id } })
+  async findOne(id: bigint) {
+    const data = await this.prisma.tgUser.findUnique({ where: { id }, include: {
+      referringProgress: true,
+      userProgress: true,
+      usedPromoCodes: true,
+      savedPromoCodes: true
+    }})
     return {
       ...data,
       id: data.id.toString()

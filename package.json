@@ -5,11 +5,13 @@
   "scripts": {
     "migrate:postgres-local": "dotenv -e .env.local -- npx prisma migrate deploy --schema=db/prisma/schema.prisma",
     "migrate:postgres-local:dev": "dotenv -e .env.local -- npx prisma migrate dev --schema ./db/prisma/schema.prisma --create-only",
-    "migrate:postgres-prod": "dotenv -e .env.production -- npx prisma migrate deploy --schema ./db/prisma/schema.prisma",    "migrate:postgres-prod:dev": "npx run dotenv -e .env.production -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma",
+    "migrate:postgres-prod": "dotenv -e .env.production -- npx prisma migrate deploy --schema ./db/prisma/schema.prisma",
+    "migrate:postgres-prod:dev": "npx run dotenv -e .env.production -- npx run prisma migrate dev --schema ./db/prisma/schema.prisma",
     "generate:postgres-local": "dotenv -e .env.local -- npx prisma generate --schema ./db/prisma/schema.prisma",
     "generate:postgres-prod": "dotenv -e .env.production -- npx prisma generate --schema ./db/prisma/schema.prisma",
     "migrate:create-local": "dotenv -e .env.local -- npx prisma migrate dev --schema ./db/prisma/schema.prisma --create-only --name",
-    "migrate:create-prod": "dotenv -e .env.production -- npx prisma migrate dev --schema ./db/prisma/schema.prisma --create-only --name"
+    "migrate:create-prod": "dotenv -e .env.production -- npx prisma migrate dev --schema ./db/prisma/schema.prisma --create-only --name",
+    "migrate:reset": "dotenv -e .env.local -- npx prisma migrate reset --schema=db/prisma/schema.prisma"
   },
   "private": true,
   "dependencies": {

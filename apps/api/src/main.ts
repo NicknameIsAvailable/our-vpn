@@ -3,6 +3,8 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
+import { RequestWithContainer } from "types/request-with-container"
+import { Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -18,6 +20,11 @@ async function bootstrap() {
     origin: configService.get<string>('CORS_ORIGIN'),
     credentials: true,
     exposedHeaders: 'set-cookie',
+  });
+
+  app.use(async (req: RequestWithContainer, res: Response, next: NextFunction) => {
+    req.container = await app.resolve(AppModule);
+    next();
   });
 
   Logger.log(

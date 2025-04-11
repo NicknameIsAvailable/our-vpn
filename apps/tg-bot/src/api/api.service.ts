@@ -1,12 +1,16 @@
+import { PromoCodeExtended } from 'types/promocode-extended';
+import { TgUserFullData } from 'types/tg-user-full-data';
+import { RatingItem } from 'types/rating-item';
+import { ExtendedUserProgress } from 'types/extended-progress';
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { MyContext } from '../bot/bot.service';
 import { CreateConfig } from 'types/create-config';
 import { ClientLocation } from 'types/client-location';
-import { Config, Invoice, TgUser } from '@prisma/client';
+import { Config, Invoice, Level, PromoCode, TgUser, UserProgress } from '@prisma/client';
 import { Checkout } from 'types/checkout';
 import { IGetPaymentList, Payment } from '@a2seven/yoo-checkout';
+import { MyContext } from '../types/my-context';
 
 @Injectable()
 export class ApiService {
@@ -32,13 +36,13 @@ export class ApiService {
     }
   }
 
-  private async getUser(ctx: MyContext): Promise<TgUser | null> {
+  private async getUser(ctx: MyContext): Promise<Partial<TgUser> | null> {
     const tgUserId = ctx.from?.id;
     if (!tgUserId) return null;
 
     try {
       const response = await firstValueFrom(
-        this.httpService.get<{ id: number; username: string; created_at: Date; updated_at: Date }>(
+        this.httpService.get<{ id: bigint; username: string; created_at: Date; updated_at: Date }>(
           `${this.apiUrl}/v1/tg-user/me`,
           {
             headers: {
@@ -103,6 +107,10 @@ export class ApiService {
     }
   }
 
+  async getUserData(ctx: MyContext): Promise<TgUserFullData> {
+    return this.request<TgUserFullData>(ctx, 'GET', '/v1/tg-user/me');
+  }
+
   async getUserConfigs(ctx: MyContext): Promise<Config[]> {
     return (await this.request<Config[]>(ctx, 'GET', '/v1/configs', null, { userId: ctx.from.id })) || [];
   }
@@ -133,5 +141,65 @@ export class ApiService {
 
   async deleteWebhookById(ctx: MyContext, id: string): Promise<boolean> {
     return (await this.request<boolean>(ctx, 'DELETE', `/v1/checkout/hook/${id}`)) ?? false;
+  }
+
+  async getUserProgresses(ctx: MyContext): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/`))
+  }
+
+  async createUserProgress(ctx: MyContext): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`))
+  }
+
+  async createPromoCode(ctx: MyContext): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`))
+  }
+
+  async savePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/save/${id}`))
+  }
+
+  async usePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/use/${id}`))
+  }
+
+  async getPromoCodeById(ctx: MyContext, id: string): Promise<PromoCode> {
+    return (await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/${id}`))
+  }
+
+  async getUserProgressById(ctx: MyContext, id?: string): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/${id}`))
+  }
+
+  async getMyProgress(ctx: MyContext): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "GET", "/v1/progresses/me"))
+  }
+
+  async getReferralSystemRating(ctx: MyContext): Promise<RatingItem[]> {
+    return (await this.request<RatingItem[]>(ctx, "GET", "/v1/progresses/rating"))
+  }
+
+  async getLevels(ctx: MyContext): Promise<Level[]> {
+    return (await this.request<Level[]>(ctx, "GET", "/v1/levels"))
+  }
+
+  async getLevelById(ctx: MyContext, id: string): Promise<Level> {
+    return (await this.request<Level>(ctx, "GET", `/v1/levels/${id}`))
+  }
+
+  async getMyPromoCode(ctx: MyContext): Promise<PromoCode> {
+    return (await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/my`))
+  }
+
+  async getPromoCodeByCode(ctx: MyContext, code: string): Promise<PromoCodeExtended> {
+    return (await this.request<PromoCodeExtended>(ctx, "GET", `/v1/promo-code/code/${code}`))
+  }
+
+  async upgradeLevel(ctx: MyContext): Promise<ExtendedUserProgress> {
+    return (await this.request<ExtendedUserProgress>(ctx, "PATCH", `/v1/progresses/upgrade`))
+  }
+
+  async createMyPromoCode(ctx: MyContext): Promise<PromoCode> {
+    return (await this.request<PromoCode>(ctx, "POST", `/v1/promo-code/my`))
   }
 }

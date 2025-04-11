@@ -40,11 +40,51 @@ model Invoice {
 }
 
 model TgUser {
-  id         BigInt   @unique
-  username   String   @default("anon")
-  configs    Config[]
+  id       BigInt   @id @unique
+  username String   @default("anon")
+  configs  Config[]
+
+  referringProgress UserProgress? @relation("Referrals", fields: [userProgressId], references: [id])
+  userProgressId    String?       @unique @map("user_progress_id")
+
+  userProgress UserProgress? @relation("UserProgressOwner")
+
   created_at DateTime @default(now())
   updated_at DateTime @default(now()) @updatedAt
+
+  usedPromoCodes  PromoCode[] @relation("UsedPromoCodes") // Промокоды, которые пользователь уже использовал
+  savedPromoCodes PromoCode[] @relation("SavedPromoCodes") // Промокоды, которые пользователь сохранил
+
+  ownedPromoCode PromoCode? @relation("OwnedPromoCode")
+}
+
+model UserProgress {
+  id              String @id @default(uuid())
+  currentLevelId  String
+  currentLevel    Level  @relation(fields: [currentLevelId], references: [id])
+  accumulatedDays Int    @default(0)
+
+  tgUserId  BigInt   @unique
+  tgUser    TgUser   @relation("UserProgressOwner", fields: [tgUserId], references: [id])
+  referrals TgUser[] @relation("Referrals")
+
+  created_at DateTime    @default(now())
+  updated_at DateTime    @default(now()) @updatedAt
+  promoCodes PromoCode[] @relation("ReferrerProgressPromocode")
+}
+
+model Level {
+  id                      String         @id @default(uuid())
+  label                   String
+  usersCount              Int
+  comment                 String
+  instantBonusDays        Int            @default(0)
+  constantBonusDays       Int            @default(0)
+  constantBonusDiscount   Int            @default(0)
+  referralDiscountPercent Int            @default(0)
+  created_at              DateTime       @default(now())
+  updated_at              DateTime       @default(now()) @updatedAt
+  UserProgress            UserProgress[]
 }
 
 model User {
@@ -70,20 +110,40 @@ model Config {
   vlessUrl    String
   created_at  DateTime   @default(now())
   updated_at  DateTime   @default(now()) @updatedAt
+  tgUser      TgUser?    @relation(fields: [tgUserId], references: [id])
   tgUserId    BigInt?
   expiryTime  BigInt     @default(0)
-  TgUser      TgUser?    @relation(fields: [tgUserId], references: [id])
 
   @@map("VlessConfig")
 }
 
+enum PromoCodeType {
+  REFERRAL
+  COMMERCIAL
+}
+
 model PromoCode {
-  id              String   @id @default(uuid())
-  code            String   @unique
-  name            String
-  description     String
-  discountPercent Int
-  configs         Config[] @relation("PromoCodeConfig")
-  created_at      DateTime @default(now())
-  updated_at      DateTime @default(now()) @updatedAt
+  id                      String        @id @default(uuid())
+  code                    String        @unique
+  type                    PromoCodeType @default(REFERRAL)
+  url                     String
+  name                    String
+  description             String
+  usesCount               Int
+  bonusDays               Int           @default(0)
+  discountPercent         Int           @default(0)
+  referralDiscountPercent Int           @default(0)
+  referralBonusDays       Int           @default(0)
+  configs                 Config[]      @relation("PromoCodeConfig")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now()) @updatedAt
+
+  users        TgUser[] @relation("UsedPromoCodes") // Те, кто использовал этот промокод
+  savedByUsers TgUser[] @relation("SavedPromoCodes") // Те, кто сохранил промокод
+  owner        TgUser?  @relation("OwnedPromoCode", fields: [ownerId], references: [id])
+  ownerId      BigInt?  @unique
+
+  referrerProgress   UserProgress? @relation("ReferrerProgressPromocode", fields: [referrerProgressId], references: [id])
+  referrerProgressId String?
 }

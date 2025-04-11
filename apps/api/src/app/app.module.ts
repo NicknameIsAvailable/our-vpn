@@ -14,6 +14,9 @@ import { CheckUserTrialAccessGuard } from '../configs/guards/check-user-trial-ac
 import { PromoCodeModule } from '../promo-code/promo-code.module';
 import { CheckoutModule } from '../checkout/checkout.module';
 import { TgUserModule } from '../tg-user/tg-user.module';
+import { TgUserMiddleware } from '../tg-user/tg-user.middleware';
+import { ProgressesModule } from '../progresses/progresses.module';
+import { LevelsModule } from '../levels/levels.module';
 
 @Module({
   imports: [
@@ -28,6 +31,8 @@ import { TgUserModule } from '../tg-user/tg-user.module';
     }),
     UserModule,
     CheckoutModule,
+    ProgressesModule,
+    LevelsModule,
     AuthModule,
   ],
   controllers: [AppController],
@@ -38,6 +43,8 @@ import { TgUserModule } from '../tg-user/tg-user.module';
 })
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes("*")
+    consumer
+      .apply(LoggerMiddleware, TgUserMiddleware)
+      .forRoutes("*")
   }
 }

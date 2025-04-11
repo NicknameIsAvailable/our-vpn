@@ -108,7 +108,7 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayNG из Google Play.",
+        text: "Скачай V2RayNG из Google Play\\.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2rayng-android', 'step-1.png')]
       },
       {
@@ -133,7 +133,7 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayTun из Google Play.",
+        text: "Скачай V2RayTun из Google Play\\.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-android', 'step-1.png')]
       },
       {
@@ -158,7 +158,7 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayTun из App Store.",
+        text: "Скачай V2RayTun из App Store\\.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-ios', 'step-1.png')]
       },
       {
@@ -183,7 +183,7 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай Hiddify из App Store.",
+        text: "Скачай Hiddify из App Store\\.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'hiddify-ios', 'step-1.png')]
       },
       {
@@ -229,22 +229,22 @@ export const stagePrices: LabeledPrice[] = [
   },
   {
     label: "1 месяц подписки",
-    amount: 1 * 100,
+    amount: 10 * 100,
     key: "1m",
   },
   {
     label: "3 месяца подписки",
-    amount: 1 * 100,
+    amount: 10 * 100,
     key: "3m",
   },
   {
     label: "6 месяцев подписки",
-    amount: 1 * 100,
+    amount: 10 * 100,
     key: "6m",
   },
   {
     label: "12 месяцев подписки",
-    amount: 1 * 100,
+    amount: 10 * 100,
     key: "12m",
   }
 ]

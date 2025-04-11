@@ -7,14 +7,15 @@ import { Config } from '@prisma/client';
 import moment from "moment";
 import fs from 'fs'
 import { generateQrCode } from '../utils/generate-qr-code';
-import { Injectable } from '@nestjs/common';
-import { MyContext } from './bot.service';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectBot } from 'nestjs-telegraf';
 import { randomUUID } from 'crypto';
 import { osList } from '../assets/assets';
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
 import { Checkout } from 'types/checkout';
 import { paymentMethods } from '../assets/payment-methods';
+import { MyContext } from '../types/my-context';
+import { ReferralSystemService } from '../referral-system/referral-system.service';
 
 @Injectable()
 export class BotFunctions {
@@ -25,6 +26,8 @@ export class BotFunctions {
   constructor(
     @InjectBot() private bot: Telegraf<MyContext>,
     private readonly apiService: ApiService,
+    @Inject(forwardRef(() => ReferralSystemService))
+    private readonly referralSystemService: ReferralSystemService
   ) {}
 
   botName = process.env.BOT_NAME;
@@ -43,14 +46,28 @@ export class BotFunctions {
         location: data
       }
 
-      await ctx.editMessageText("Выберите вариант подписки", {
+      await ctx.editMessageText("Хотите использовать промокод перед выбором подписки?", {
         reply_markup: {
-          inline_keyboard: prices.map((price) => ([
-            {
-              text: `${price.label} за ${price.amount / 100}₽`,
-              callback_data: `choose_price_${price.key}`
-            }
-          ]))
+          inline_keyboard: [
+            [
+              {
+                text: "🎟 Использовать сохраненный промокод",
+                callback_data: "use_saved_promo"
+              }
+            ],
+            [
+              {
+                text: "✏️ Ввести свой промокод",
+                callback_data: "enter_promo"
+              }
+            ],
+            [
+              {
+                text: "➡️ Пропустить и выбрать подписку",
+                callback_data: "skip_promo"
+              }
+            ]
+          ]
         }
       })
     } catch (error) {
@@ -59,13 +76,39 @@ export class BotFunctions {
     }
   }
 
-  async handleChoosePaymentMethod(ctx: MyContext, data: string) {
+  modifyPriceWithPromoCode(ctx: MyContext, price: number) {
+    const selectedPromoCode = ctx.session?.selectedPromoCode;
+    if (selectedPromoCode) {
+      const priceInRubles = price / 100;
+      const discountAmount = priceInRubles * (selectedPromoCode.discountPercent / 100);
+      return priceInRubles - discountAmount;
+    }
+    return price / 100;
+  }
+
+  async showSubscriptionOptions(ctx: any) {
+    const message = "Выберите вариант подписки";
+    const keyboard = {
+      inline_keyboard: prices.map((price) => ([
+        {
+          text: `${price.label} за ${this.modifyPriceWithPromoCode(ctx, price.amount)}₽`,
+          callback_data: `choose_price_${price.key}`
+        }
+      ]))
+    };
+
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText(message, { reply_markup: keyboard });
+    } else {
+      await ctx.reply(message, { reply_markup: keyboard });
+    }
+  }
+
+  async choosePaymentMethod(ctx: MyContext, data: string) {
     this.handleCancelPayment(ctx as MyContext);
 
     const currentPrice = prices.find(price => `choose_price_${price.key}` === data)
     const isTrial = currentPrice && currentPrice.key === "trial"
-
-    console.log({ isTrial, currentPrice })
 
     if (isTrial) {
       ctx.session = {
@@ -80,110 +123,152 @@ export class BotFunctions {
       return;
     }
 
-    console.log({ session: ctx.session })
+    let finalAmount = currentPrice.amount;
+
+    if (ctx.session && ctx.session.selectedPromoCode) {
+      try {
+        const promoCode = ctx.session.selectedPromoCode;
+        const discountPercent = promoCode.discountPercent || 0;
+        const discountAmount = Math.floor(currentPrice.amount * (discountPercent / 100));
+        finalAmount = currentPrice.amount - discountAmount;
+      } catch (error) {
+        console.error('Error applying promo code:', error);
+      }
+    }
 
     ctx.session = {
       ...ctx.session,
       currentPrice,
       payment: {
         invoice_payload: currentPrice.key,
-        total_amount: currentPrice.amount,
+        total_amount: finalAmount,
         currency: "RUB"
       }
     }
 
-    ctx.editMessageText("Выберите способ оплаты", {
-      reply_markup: {
-        inline_keyboard: paymentMethods.map(method => ([{
-          text: method.label,
-          callback_data: `choose_payment_method_${method.value}`
-        }]))
+    const newMessageText = "Выберите способ оплаты";
+    const newKeyboard = {
+      inline_keyboard: paymentMethods.map(method => ([{
+        text: method.label,
+        callback_data: `choose_payment_method_${method.value}`
+      }]))
+    };
+
+    try {
+      await ctx.editMessageText(newMessageText, {
+        reply_markup: newKeyboard
+      });
+    } catch (error) {
+      if (error.description && error.description.includes("message is not modified")) {
+        console.log("Message content unchanged, skipping edit");
+      } else {
+        throw error;
       }
-    })
+    }
   }
 
-  async handlePayment(ctx: MyContext, data: string) {
-      this.handleCancelPayment(ctx as MyContext);
+  async handleChoosePaymentMethod(ctx: MyContext, callback_data: string) {
+    const selectedPaymentMethod = paymentMethods.find(method => `choose_payment_method_${method.value}` === callback_data)
 
-      const { currentPrice } = ctx.session
+    if (!selectedPaymentMethod) {
+      return ctx.reply("❌ Выберите способ оплаты из списка");
+    }
 
-      const userId = String(ctx.from.id);
-      const username = ctx.from.username
-      const locations = await this.apiService.getLocations(ctx);
-      const messageId = ctx.callbackQuery.message.message_id;
-      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
-      const selectedPaymentMethod = paymentMethods.find(method => `choose_payment_method_${method.value}` === data)
+    ctx.session = {
+      ...ctx.session,
+      paymentMethod: selectedPaymentMethod
+    }
 
-      console.log({ selectedLocation, selectedPaymentMethod })
-      if (!selectedLocation) return;
+    return this.processPayment(ctx)
+  }
 
-      let months = 1;
-      let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
+  async processPayment(ctx: MyContext) {
+    this.handleCancelPayment(ctx as MyContext);
 
-      const idempotenceKey = randomUUID();
-      months = this.getSubscriptionLength(`vpn_${currentPrice.key}`);
-      configName = `${username} ${`vpn_${currentPrice.key}_${messageId}`}`;
+    const { currentPrice, paymentMethod } = ctx.session;
+    const promoCodeId = ctx.session.selectedPromoCode?.id || "";
 
-      const isTrial = currentPrice && currentPrice.key === "trial"
+    const userId = String(ctx.from.id);
+    const username = ctx.from.username
+    const messageId = ctx.callbackQuery.message.message_id;
+    const location = ctx.session?.location
 
-      if (isTrial) {
-        this.generateConfig(ctx)
-        return;
-      }
-      const invoiceData: Checkout = {
-        amount: currentPrice.amount,
-        idempotence_key: idempotenceKey,
-        paymentMethod: selectedPaymentMethod.value,
-        username: ctx.from.username || `anon-${ctx.from.id}`,
-        email: `${ctx.from.first_name}@mail.com`,
-        items: [
-          {
-            description: currentPrice.label,
-            amount: currentPrice.amount
-          }
-        ],
-        payload: {
-          userId,
-          username,
-          months,
-          isTrial,
-          price: currentPrice.amount / 100,
-          name: configName,
-          locationId: selectedLocation.id,
-          promoCode: ""
+    if (!location) return;
+
+    let months = 1;
+    let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
+
+    const idempotenceKey = randomUUID();
+    months = this.getSubscriptionLength(`vpn_${currentPrice.key}`);
+    configName = `${username} ${`vpn_${currentPrice.key}_${messageId}`}`;
+
+    const isTrial = currentPrice && currentPrice.key === "trial"
+
+    if (isTrial) {
+      this.generateConfig(ctx)
+      return;
+    }
+
+    const finalAmount = this.modifyPriceWithPromoCode(ctx, currentPrice.amount)
+
+    console.log({ finalAmount })
+
+    const invoiceData: Checkout = {
+      amount: finalAmount * 100,
+      idempotence_key: idempotenceKey,
+      paymentMethod: paymentMethod.value,
+      username: ctx.from.username || `anon-${ctx.from.id}`,
+      email: `romanov.y.job@gmail.com`,
+      items: [
+        {
+          description: currentPrice.label,
+          amount: finalAmount * 100
         }
+      ],
+      payload: {
+        userId,
+        username,
+        months,
+        isTrial,
+        price: finalAmount,
+        name: configName,
+        locationId: location.id,
+        promoCode: promoCodeId
       }
+    }
 
-      const invoice = await this.apiService.createInvoice(ctx, invoiceData)
+    const invoice = await this.apiService.createInvoice(ctx, invoiceData)
 
-      ctx.editMessageText(`Вы выбрали ${currentPrice.label}`)
-      const message = await ctx.reply(`Для оплаты нажмите кнопку ниже 👇`, {
-        parse_mode: "MarkdownV2",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Оплатить",
-                url: invoice.data.confirmation_url
-              }
-            ],
-            [
-              {
-                text: "Отмена",
-                callback_data: "cancel_payment"
-              }
-            ]
+    console.log({ invoice })
+
+    ctx.editMessageText(`Вы выбрали ${currentPrice.label}`)
+    const message = await ctx.reply(`Для оплаты нажмите кнопку ниже 👇`, {
+      parse_mode: "MarkdownV2",
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: `Оплатить ${finalAmount}₽`,
+              url: invoice.data.confirmation_url
+            }
+          ],
+          [
+            {
+              text: "Отмена",
+              callback_data: "cancel_payment"
+            }
           ]
-        }
-      })
-
-      ctx.session = {
-        ...ctx.session,
-        paymentMessageId: message.message_id,
-        currentInvoiceId: invoice.data.id
+        ]
       }
+    })
 
-      await this.startCheckoutPolling(ctx, invoice.data.id)
+    ctx.session = {
+      ...ctx.session,
+      paymentMessageId: message.message_id,
+      currentInvoiceId: invoice.data.id
+    }
+
+    await this.startCheckoutPolling(ctx, invoice.data.id)
   }
 
   async handleCancelPayment(ctx: MyContext) {
@@ -209,8 +294,8 @@ export class BotFunctions {
     if (this.timers.has(invoiceId)) return;
 
     const timer = setInterval(async () => {
-      console.log(`Checking invoice: ${invoiceId}`);
       const invoice = await this.apiService.findInvoice(ctx, invoiceId);
+      console.log({session: ctx.session})
 
       if (invoice.entity.paid && invoice.entity.status === "succeeded") {
         this.stopCheckoutPolling(invoiceId);
@@ -242,7 +327,7 @@ export class BotFunctions {
 
       const locations = await this.apiService.getLocations(ctx);
       if (locations.length === 0) {
-        return await ctx.reply("⚠️ Нет доступных серверов.");
+        return await ctx.reply("⚠️ Нет доступных серверов\\.");
       }
 
       const message = await ctx.reply("🌍 Выберите страну для подключения:", {
@@ -256,16 +341,10 @@ export class BotFunctions {
         }
       });
 
-      if (!ctx.session) {
-        ctx.session = { locationMessageId: message.message_id, subscriptionMessageId: message.message_id };
-      } else {
-        ctx.session.locationMessageId = message.message_id;
-        ctx.session.subscriptionMessageId = message.message_id;
-      }
-
+      ctx.session = { ...ctx.session, locationMessageId: message.message_id, subscriptionMessageId: message.message_id };
     } catch (error) {
       console.error('Ошибка обработки подписки:', error);
-      await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
+      await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой\\.', {
         reply_markup: {
           inline_keyboard: [
             [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
@@ -286,6 +365,9 @@ export class BotFunctions {
 
     if (text === "⚙ Получить ссылки для подключения" || text.includes("/connections")) {
       await this.getConfigs(ctx as any);
+    }
+    if (text === "🫂 Реферальная система" || text.includes("/referral")) {
+      await this.referralSystemService.sendReferralSystemControlPanel(ctx as MyContext, null, true);
     }
     else if (text.includes("/menu")) {
       await this.openMenu(ctx as any)
@@ -447,12 +529,12 @@ export class BotFunctions {
       const payment = ctx.session?.payment;
       const tgUserId = ctx.from.id;
       const username = ctx.from.username
-      const locations = await this.apiService.getLocations(ctx);
       const data = (ctx as any).callbackQuery?.data;
       if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
-      const selectedLocation = locations.find(loc => `choose_location_${loc.id}` === ctx.session.location);
-      if (!selectedLocation) return;
+      const location = ctx.session.location;
+
+      if (!location) return;
 
       let months = 1;
       let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
@@ -463,8 +545,6 @@ export class BotFunctions {
         console.error('Ошибка при удалении сообщения:', error);
       }
 
-      console.log({ payment })
-
       const isTrial = payment && payment.invoice_payload === "trial"
 
 
@@ -474,36 +554,27 @@ export class BotFunctions {
       if (!isTrial)
         await ctx.reply('💸 Спасибо за оплату! 🙏')
 
-      await ctx.reply(`🔄 Генерируем подключение для сервера в ${selectedLocation.label}...`);
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}...`);
 
       console.log("✅ Перед вызовом createConfig");
-      const config = await this.apiService.createConfig(ctx, {
-        tgUserId: tgUserId,
+
+      const configData = {
+        tgUserId: String(tgUserId),
         username,
         months,
         isTrial,
         name: configName,
-        locationId: selectedLocation.id,
+        locationId: location.id,
         price: payment?.total_amount || 0,
         promoCode: ""
-      });
+      };
 
-      console.log({ config, session4: ctx.session })
+      const config = await this.apiService.createConfig(ctx, configData);
 
-      console.log("✅ Перед проверкой 403");
-      // if ((config as any) && (config as any).response.status === 403) {
-      //   await ctx.reply("⛔ Вы уже использовали пробную подписку ранее. \nПопробуйте еще раз", {
-      //     reply_markup: {
-      //       inline_keyboard: [[
-      //         {
-      //           text: "🔁 Попробовать еще раз",
-      //           callback_data: "subscribe_command"
-      //         }
-      //       ]]
-      //     }
-      //   });
-      //   return;
-      // }
+      if (ctx.session?.selectedPromoCode) {
+        console.log("Использован промокод: ", {selectedPromoCode: ctx.session.selectedPromoCode})
+        await this.apiService.usePromoCode(ctx, ctx.session.selectedPromoCode.id);
+      }
 
       const qrPath = `/tmp/qrcode_${tgUserId}.png`;
 
@@ -511,7 +582,7 @@ export class BotFunctions {
         try {
           await generateQrCode(config.vlessUrl, qrPath);
           await ctx.replyWithPhoto({ source: qrPath }, {
-            caption: `🎉 Ваше подключение готово:\n\`\`\`${config.vlessUrl}\`\`\`\n🔄 Что дальше? Нажми “Что делать дальше?” ниже 👇`,
+            caption: `🎉 Ваше подключение готово:\n\`\`\`${config.vlessUrl}\`\`\`\n🔄 Что дальше? Нажми "Что делать дальше?" ниже 👇`,
             parse_mode: "MarkdownV2",
             reply_markup: {
               inline_keyboard: [[{ text: "❓ Что делать дальше?", callback_data: "help" }]]
@@ -519,7 +590,7 @@ export class BotFunctions {
           });
         } catch (error) {
           console.error('Ошибка при создании QR-кода:', error);
-          await ctx.reply('⚠️ Ошибка при генерации QR-кода. Свяжитесь с поддержкой.');
+          await ctx.reply('⚠️ Ошибка при генерации QR-кода. Свяжитесь с поддержкой\\.');
         } finally {
           fs.unlink(qrPath, () => {
             console.log({deleted: qrPath})
@@ -541,7 +612,7 @@ export class BotFunctions {
       }
 
       console.error("Ошибка при генерации подключения:", error);
-      await ctx.reply("⚠️ Произошла ошибка. Свяжитесь с поддержкой.", {
+      await ctx.reply("⚠️ Произошла ошибка. Свяжитесь с поддержкой\\.", {
         reply_markup: {
           inline_keyboard: [
             [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]
@@ -556,7 +627,7 @@ export class BotFunctions {
       reply_markup: {
         keyboard: [
           [{ text: "⚙ Получить ссылки для подключения" }],
-          [{ text: "💳 Подписка" }],
+          [{ text: "💳 Подписка" }, { text: "🫂 Реферальная система" }],
           [{ text: "🆘 Поддержка" }, { text: "Инструкция по использованию VPN" }]
         ],
         resize_keyboard: true,

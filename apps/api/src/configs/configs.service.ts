@@ -14,7 +14,7 @@ export class ConfigsService {
     expiryTime: number,
     email: string,
     username: string,
-    tgUserId: number,
+    tgUserId: string,
   ) {
     const response = await xuiApi.addClientToInbound(location, {
       expiryTime,
@@ -130,7 +130,7 @@ export class ConfigsService {
     }
   }
 
-  async findAll(tgUserId?: number) {
+  async findAll(tgUserId?: bigint) {
     const configs = await this.prisma.config.findMany({
       where: tgUserId ? { tgUserId } : undefined,
       include: {

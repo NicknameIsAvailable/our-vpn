@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
 import { TgUserService } from './tg-user.service';
 import { CreateTgUserDto } from './dto/create-tg-user.dto';
-import { TgUserId } from './decorators/tg-user-id.decorator';
+import { TgUserData } from './decorators/tg-user-id.decorator';
+import { TgUser } from '@prisma/client';
 
 @Controller('tg-user')
 export class TgUserController {
@@ -18,13 +19,13 @@ export class TgUserController {
   }
 
   @Get('me')
-  findMe(@TgUserId() id: number) {
-    return this.tgUserService.findOne(+id);
+  findMe(@TgUserData('user') user: TgUser) {
+    return this.tgUserService.findOne(user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.tgUserService.findOne(+id);
+  findOne(@Param('id') id: bigint) {
+    return this.tgUserService.findOne(id);
   }
 
   // @Patch(':id')

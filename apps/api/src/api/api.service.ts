@@ -1,28 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { ClientLocation } from "types/client-location"
-import { Config } from '@prisma/client';
-import { CreateConfigDto } from '../configs/dto/create-config.dto';
-
+import { NotifyReferralDtoInterface } from 'types/notify-referral';
 @Injectable()
 export class ApiService {
   private readonly apiUrl = process.env.TELEGRAM_URL;
 
   constructor(private readonly httpService: HttpService) {}
 
-  async sendConfig(dto: CreateConfigDto) {
-    const url = `${this.apiUrl}/hook/send-config`;
+  async notifyReferral(notifyReferralDto: NotifyReferralDtoInterface) {
+    const url = `${this.apiUrl}/notifications/referral`;
     try {
-      const response = await firstValueFrom(
-        this.httpService.get(url, {
-          data: dto
-        })
-      );
+      const response = await this.httpService.post(url, notifyReferralDto).toPromise();
+      console.log("Referral notification sent successfully:", response.data);
       return response.data;
     } catch (error) {
-      console.error('Ошибка отправки конфигураций', error);
-      return [];
+      console.error("Error sending referral notification:", error.response?.data || error.message);
+      throw error;
     }
   }
 }

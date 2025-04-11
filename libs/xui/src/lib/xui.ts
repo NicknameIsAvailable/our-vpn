@@ -35,7 +35,7 @@ function generateRandomString(length: number): string {
   return result;
 }
 
-async function addClientToInbound(location: Location, data: { expiryTime: number; email: string; tgUserId: number, username: string }) {
+async function addClientToInbound(location: Location, data: { expiryTime: number; email: string; tgUserId: string, username: string }) {
   try {
     console.log({ location })
     const api = generateApi(location)

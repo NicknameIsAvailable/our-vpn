@@ -1,10 +1,10 @@
-export class CreateConfig {
+export interface CreateConfig {
+  tgUserId: string;
+  username: string;
   months: number;
+  isTrial: boolean;
   name: string;
   locationId: string;
-  tgUserId: number;
-  username?: string;
   price: number;
-  isTrial: boolean;
-  promoCode?: string;
+  promoCode: string;
 }

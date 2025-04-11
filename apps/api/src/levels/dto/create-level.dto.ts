@@ -5,4 +5,5 @@ export class CreateLevelDto {
   instantBonusDays: number;
   constantBonusDays: number;
   constantBonusDiscount: number;
+  referralDiscountPercent: number;
 }
