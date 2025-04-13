@@ -9,14 +9,17 @@ import fs from "fs"
 import { escapeMarkdownV2 } from '../utils/escape-markdown';
 import { MyContext } from '../types/my-context';
 import { ReferralSystemService } from '../referral-system/referral-system.service';
-
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { ConfigsService } from '../configs/configs.service';
 @Injectable()
 export class BotService {
   constructor(
     @InjectBot() readonly bot: Telegraf<MyContext>,
     private readonly apiService: ApiService,
     private referralSystemService: ReferralSystemService,
-    private botFunctions: BotFunctions
+    private botFunctions: BotFunctions,
+    private subscriptionsService: SubscriptionsService,
+    private configsService: ConfigsService
   ) {
     const botName = process.env.BOT_NAME;
 
@@ -55,10 +58,19 @@ export class BotService {
         try {
           await this.referralSystemService.savePromoCode(ctx, promoCode);
           ctx.session.waitingForPromoCode = false;
-          await this.botFunctions.showSubscriptionOptions(ctx);
+          if (ctx.session.isExtending) {
+            await this.subscriptionsService.showExtendOptions(ctx, ctx.session.configToExtend.id);
+          } else {
+            await this.subscriptionsService.showSubscriptionOptions(ctx);
+          }
         } catch (error) {
           await ctx.reply("❌ Неверный промокод. Попробуйте еще раз или нажмите 'Назад' для отмены.");
         }
+        return;
+      }
+
+      if (ctx.session?.waitingForDaysInput) {
+        await this.subscriptionsService.handleDaysInput(ctx, ctx.message.text);
         return;
       }
 
@@ -66,11 +78,11 @@ export class BotService {
     })
 
     this.bot.command("menu", async (ctx) => {
-      botFunctions.openMenu(ctx)
+      this.botFunctions.openMenu(ctx)
     });
 
     this.bot.action("subscribe_command", async (ctx) => {
-      botFunctions.chooseLocation(ctx)
+      this.subscriptionsService.chooseLocation(ctx)
     });
 
     this.bot.action("guide", async (ctx) => {
@@ -100,17 +112,22 @@ export class BotService {
       const data = (ctx as any).callbackQuery?.data;
 
       if (data && data.startsWith("show_config_")) {
-        await botFunctions.showConfig(ctx)
+        await this.configsService.showConfig(ctx)
+        return;
+      }
+
+      if (data && data === "connections") {
+        await this.botFunctions.getConfigs(ctx)
         return;
       }
 
       if (data && data.startsWith("choose_location_")) {
-        await botFunctions.handleSubscribe(ctx, data)
+        await this.subscriptionsService.handleSubscribe(ctx, data)
         return;
       }
 
       if (data && data === "open_menu") {
-        await botFunctions.openMenu(ctx)
+        await this.botFunctions.openMenu(ctx)
         return;
       }
 
@@ -134,23 +151,155 @@ export class BotService {
         return;
       }
 
+      if (data === "enter_promo_extend") {
+        await ctx.editMessageText("Введите промокод в чат:", {
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔙 Назад", callback_data: "extend_subscription" }]
+            ]
+          }
+        });
+        ctx.session = {
+          ...ctx.session,
+          waitingForPromoCode: true,
+          isExtending: true
+        };
+        return;
+      }
+
+      if (data === "skip_promo") {
+        await this.subscriptionsService.showSubscriptionOptions(ctx);
+        return;
+      }
+
+      if (data.startsWith("skip_promo_extend_")) {
+        const configId = data.replace("skip_promo_extend_", "");
+        await this.subscriptionsService.showExtendOptions(ctx, configId);
+        return;
+      }
+
+      if (data === "use_saved_promo_extend") {
+        const userData = await this.apiService.getUserData(ctx);
+        const savedPromoCodes = userData.savedPromoCodes;
+
+        if (savedPromoCodes.length === 0) {
+          await ctx.editMessageText("У вас нет сохраненных промокодов.", {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🔙 Назад", callback_data: "extend_subscription" }]
+              ]
+            }
+          });
+          return;
+        }
+
+        const keyboard = savedPromoCodes.map(promo => [{
+          text: `${promo.code} (${promo.discountPercent}% скидка)`,
+          callback_data: `use_promo_extend_${promo.id}`
+        }]);
+        keyboard.push([{ text: "🔙 Назад", callback_data: "extend_subscription" }]);
+
+        await ctx.editMessageText("Выберите промокод для использования:", {
+          reply_markup: {
+            inline_keyboard: keyboard
+          }
+        });
+        return;
+      }
+
+      if (data.startsWith("use_promo_extend_")) {
+        const promoCodeId = data.replace("use_promo_extend_", "");
+        const promoCode = await this.apiService.getPromoCodeById(ctx, promoCodeId);
+
+        if (!promoCode) {
+          await ctx.editMessageText("❌ Промокод не найден", {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: "🔙 Назад", callback_data: "extend_subscription" }]
+              ]
+            }
+          });
+          return;
+        }
+
+        ctx.session = {
+          ...ctx.session,
+          selectedPromoCode: promoCode
+        };
+
+        await this.subscriptionsService.showExtendOptions(ctx, ctx.session.configToExtend.id);
+        return;
+      }
+
       if (data && data.startsWith("use_promo_")) {
         await this.referralSystemService.handleUsePromoCode(ctx, data);
         return;
       }
 
+      if (data === "extend_subscription") {
+        await this.subscriptionsService.extendSubscription(ctx);
+        return;
+      }
+
+      if (data === "extend_referral") {
+        await this.subscriptionsService.handleExtendReferral(ctx);
+        return;
+      }
+
+      if (data && data.startsWith("extend_months_")) {
+        const [_, action, configId] = data.split("_").slice(1);
+        const months = {
+          "1m": 1,
+          "3m": 3,
+          "6m": 6,
+          "12m": 12
+        }[action];
+
+        await this.subscriptionsService.handleExtendMonths(ctx, months, configId);
+        return;
+      }
+
+      if (data && data.startsWith("extend_subscription_")) {
+        const configId = data.replace("extend_subscription_", "");
+        await this.subscriptionsService.handleExtendSubscription(ctx, configId);
+        return;
+      }
+
+      if (data && data.startsWith("extend_month_") ||
+          data.startsWith("extend_3months_") ||
+          data.startsWith("extend_6months_") ||
+          data.startsWith("extend_12months_")) {
+        const [action, configId] = data.split("_").slice(1);
+        const months = {
+          "month": 1,
+          "3months": 3,
+          "6months": 6,
+          "12months": 12
+        }[action];
+
+        const configToExtend = await this.apiService.getConfigById(ctx, configId);
+
+        ctx.session = {
+          ...ctx.session,
+          configToExtend
+        };
+
+        await this.configsService.extend(ctx);
+        return;
+      }
+
       if (data && data.startsWith("choose_price_")) {
-        await botFunctions.choosePaymentMethod(ctx, data)
+        await this.subscriptionsService.choosePaymentMethod(ctx, data)
         return;
       }
 
       if (data && data.startsWith("choose_payment_method_")) {
-        await botFunctions.handleChoosePaymentMethod(ctx, data)
+        await this.subscriptionsService.handleChoosePaymentMethod(ctx, data)
         return;
       }
 
       if (data && data.startsWith("cancel_payment")) {
-        await botFunctions.handleCancelPayment(ctx)
+        await this.subscriptionsService.handleCancelPayment(ctx)
         return;
       }
 
@@ -240,7 +389,7 @@ export class BotService {
 
     this.bot.action("get_configs", async (ctx) => {
       await ctx.answerCbQuery();
-      await botFunctions.getConfigs(ctx)
+      await this.botFunctions.getConfigs(ctx)
     });
 
     this.bot.action("open_menu", async (ctx) => {
@@ -263,11 +412,11 @@ export class BotService {
     });
 
     this.bot.command("help", async (ctx) => {
-      await botFunctions.showGuide(ctx)
+      await this.botFunctions.showGuide(ctx)
     });
 
     this.bot.command('connections', async (ctx) => {
-      await botFunctions.getConfigs(ctx)
+      await this.botFunctions.getConfigs(ctx)
     });
 
     this.bot.action("help", async (ctx) => {
@@ -292,7 +441,7 @@ export class BotService {
     });
 
     this.bot.command("subscribe", async (ctx: MyContext) => {
-      await botFunctions.chooseLocation(ctx as any)
+      await this.subscriptionsService.chooseLocation(ctx as any)
     });
 
     this.bot.on('pre_checkout_query', async (ctx) => {
@@ -305,7 +454,7 @@ export class BotService {
     });
 
     this.bot.command('servers', async (ctx) => {
-      botFunctions.getServers(ctx, apiService)
+      this.botFunctions.getServers(ctx, this.apiService)
     })
   }
 }

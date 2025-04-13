@@ -1,10 +1,10 @@
 import { InboundResponse, xuiApi } from '@nash-vpn/xui';
 import { Injectable } from '@nestjs/common';
-import { CreateConfigDto } from './dto/create-config.dto';
 import { PrismaService } from '@nash-vpn/db';
-import { VlessConfig } from "types/vless"
 import { Location, PromoCode } from "@prisma/client";
-
+import { parseXUIConfig } from '@nash-vpn/xui';
+import { CreateConfigRequestDto } from './dto/create-config.dto';
+import { ExtendConfigDto } from './dto/extend-config.dto';
 @Injectable()
 export class ConfigsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -72,7 +72,7 @@ export class ConfigsService {
     return `${email}@${domain}`;
   }
 
-  async create(createConfigDto: CreateConfigDto) {
+  async create(createConfigDto: CreateConfigRequestDto) {
     let expiryTime: number;
     let promoCode: PromoCode | null = null;
 
@@ -118,6 +118,7 @@ export class ConfigsService {
             country: true,
             city: true,
             coordinates: true,
+            label: true,
           }
         }
       }
@@ -161,13 +162,17 @@ export class ConfigsService {
           name: true,
           country: true,
           city: true,
-          coordinates: true
+          coordinates: true,
+          label: true,
         }
       }
     }});
 
+    console.log({ config: parseXUIConfig(data.config) })
+
     return {
       ...data,
+      config: parseXUIConfig(data.config),
       expiryTime: data.expiryTime.toString(),
       tgUserId: data.tgUserId ? data.tgUserId.toString() : null
     }
@@ -180,6 +185,97 @@ export class ConfigsService {
       ...data,
       expiryTime: data.expiryTime.toString(),
       tgUserId: data.tgUserId ? data.tgUserId.toString() : null
+    };
+  }
+
+  async extend(id: string, tgUserId: bigint, extendConfigDto: ExtendConfigDto) {
+    const config = await this.prisma.config.findUnique({
+      where: { id },
+      include: { location: true }
+    });
+
+    if (!config) {
+      throw new Error('Конфиг не найден');
+    }
+
+    console.log({ config, tgUserId })
+
+    if (config.tgUserId.toString() !== tgUserId.toString()) {
+      throw new Error('У вас нет доступа к этому конфигу');
+    }
+
+    let daysToAdd: number;
+
+    if (extendConfigDto.useAccumulatedDays) {
+      const userProgress = await this.prisma.userProgress.findUnique({
+        where: { tgUserId }
+      });
+
+      if (!userProgress) {
+        throw new Error('Информация о прогрессе пользователя не найдена');
+      }
+
+      if (userProgress.accumulatedDays <= 0) {
+        throw new Error('У вас нет накопленных дней для продления');
+      }
+
+      daysToAdd = extendConfigDto.days;
+
+      await this.prisma.userProgress.update({
+        where: { id: userProgress.id },
+        data: {
+          accumulatedDays: {
+            decrement: daysToAdd
+          }
+        }
+      });
+    } else {
+      if (extendConfigDto.months) {
+        daysToAdd = extendConfigDto.months * 30;
+      } else if (extendConfigDto.days) {
+        daysToAdd = extendConfigDto.days;
+      } else {
+        throw new Error('Необходимо указать количество дней или месяцев для продления');
+      }
+    }
+
+    const currentTime = Date.now();
+    const configExpiryTime = Number(config.expiryTime);
+
+    const newExpiryTime = configExpiryTime < currentTime
+      ? currentTime + (daysToAdd * 24 * 60 * 60 * 1000)
+      : configExpiryTime + (daysToAdd * 24 * 60 * 60 * 1000);
+
+    const XUIConfig = parseXUIConfig(config.config);
+    const updateXuiClient = await xuiApi.updateClient(config.location, XUIConfig.settings.clients[0].id, {
+      expiryTime: newExpiryTime,
+      enabled: newExpiryTime > currentTime
+    })
+
+    const updatedConfig = await this.prisma.config.update({
+      where: { id },
+      data: {
+        expiryTime: BigInt(newExpiryTime)
+      },
+      include: {
+        location: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            city: true,
+            coordinates: true
+          }
+        }
+      }
+    });
+
+    return {
+      ...updatedConfig,
+      expiryTime: updatedConfig.expiryTime.toString(),
+      tgUserId: updatedConfig.tgUserId ? updatedConfig.tgUserId.toString() : null,
+      daysAdded: daysToAdd,
+      updateXuiClient
     };
   }
 }

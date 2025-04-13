@@ -1,6 +1,6 @@
 import { CreateConfig } from "types/create-config"
 
-export class CreateConfigDto implements CreateConfig {
+export class CreateConfigRequestDto implements CreateConfig {
   tgUserId: string;
   username: string;
   months: number;

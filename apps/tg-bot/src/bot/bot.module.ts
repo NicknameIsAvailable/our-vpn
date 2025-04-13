@@ -8,6 +8,10 @@ import { ReferralSystemModule } from '../referral-system/referral-system.module'
 import { ReferralSystemService } from '../referral-system/referral-system.service';
 import { ReferralSystemController } from '../referral-system/referral-system.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { ConfigsService } from '../configs/configs.service';
+import { ConfigsModule } from '../configs/configs.module';
 @Module({
   imports: [
     TelegrafModule.forRoot({
@@ -15,10 +19,12 @@ import { NotificationsModule } from '../notifications/notifications.module';
     }),
     ApiModule,
     NotificationsModule,
-    forwardRef(() => ReferralSystemModule)
+    forwardRef(() => ReferralSystemModule),
+    forwardRef(() => SubscriptionsModule),
+    forwardRef(() => ConfigsModule)
   ],
   exports: [BotService, BotFunctions],
   controllers: [BotController, ReferralSystemController],
-  providers: [BotService, BotFunctions, ReferralSystemService],
+  providers: [BotService, BotFunctions, ReferralSystemService, SubscriptionsService, ConfigsService],
 })
 export class BotModule {}

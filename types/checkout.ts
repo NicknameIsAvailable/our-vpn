@@ -14,6 +14,7 @@ export interface CheckoutPayload {
   price: number;
   isTrial: boolean;
   promoCode?: string;
+  configId?: string;
 }
 
 export interface Checkout {

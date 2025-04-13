@@ -2,6 +2,7 @@ import { Context } from "telegraf";
 import { LabeledPrice } from "../assets/assets";
 import { PromoCode, Location } from "@prisma/client";
 import { PaymentMethodLabel } from 'types/payment-method';
+import { ExtendedConfig } from 'types/extended-config';
 
 interface BotSession {
   locationMessageId?: number;
@@ -13,6 +14,12 @@ interface BotSession {
   currentInvoiceId?: string;
   waitingForPromoCode?: boolean;
   selectedPromoCode?: PromoCode;
+  configToExtend?: ExtendedConfig;
+  waitingForDaysInput?: boolean;
+  selectedDays?: number;
+  selectedMonths?: number;
+  isNewConfig?: boolean;
+  isExtending?: boolean;
   payment?: {
     invoice_payload: string;
     total_amount: number;

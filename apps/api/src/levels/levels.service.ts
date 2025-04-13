@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '@nash-vpn/db';
 import { CreateLevelDto } from './dto/create-level.dto';
 import { UpdateLevelDto } from './dto/update-level.dto';
-import { PrismaService } from '@nash-vpn/db';
-
 @Injectable()
 export class LevelsService {
   constructor(private readonly prisma: PrismaService) {}

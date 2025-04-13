@@ -1,8 +1,8 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { LevelsService } from './levels.service';
+import { Auth } from '../auth/guards/decorators/auth.decorator';
 import { CreateLevelDto } from './dto/create-level.dto';
 import { UpdateLevelDto } from './dto/update-level.dto';
-import { Auth } from '../auth/guards/decorators/auth.decorator';
 
 @Controller('levels')
 export class LevelsController {

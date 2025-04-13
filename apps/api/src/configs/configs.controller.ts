@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
 import { ConfigsService } from './configs.service';
-import { CreateConfigDto } from './dto/create-config.dto';
 import { CheckUserTrialAccess } from './decorators/check-user-trial-access.decorator';
 import { CheckUserTrialAccessGuard } from './guards/check-user-trial-access/check-user-trial-access.guard';
 import { TgUserData } from '../tg-user/decorators/tg-user-id.decorator';
 import { TgUser } from '@prisma/client';
+import { ExtendConfigDto } from './dto/extend-config.dto';
+import { CreateConfigRequestDto } from './dto/create-config.dto';
 
 @Controller('configs')
 export class ConfigsController {
@@ -14,7 +15,7 @@ export class ConfigsController {
   @UseGuards(CheckUserTrialAccessGuard)
   @CheckUserTrialAccess('tgUserId')
   // @Auth()
-  async create(@TgUserData('user') user: TgUser, @Body() createConfigDto: CreateConfigDto) {
+  async create(@TgUserData('user') user: TgUser, @Body() createConfigDto: CreateConfigRequestDto) {
     const res = await this.configsService.create({...createConfigDto, tgUserId: String(user.id)})
 
     return {...res, config: JSON.parse(String(res.config))};
@@ -31,12 +32,21 @@ export class ConfigsController {
   async findOne(@Param('id') id: string) {
     const res = await this.configsService.findOne(id)
 
-    return {...res, config: JSON.parse(String(res.config))};
+    return res;
   }
 
   @Delete(':id')
   // @Auth()
   remove(@Param('id') id: string) {
     return this.configsService.remove(id);
+  }
+
+  @Post(':id/extend')
+  async extend(
+    @Param('id') id: string,
+    @TgUserData('user') user: TgUser,
+    @Body() extendConfigDto: ExtendConfigDto
+  ) {
+    return this.configsService.extend(id, BigInt(user.id), extendConfigDto);
   }
 }

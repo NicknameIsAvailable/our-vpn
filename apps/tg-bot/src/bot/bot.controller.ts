@@ -5,13 +5,14 @@ import { On } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { Message, Update } from 'telegraf/typings/core/types/typegram';
 import { BotFunctions } from './functions';
+import { MyContext } from '../types/my-context';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Controller('bot')
 export class BotController {
   constructor(
-    private readonly botService: BotService,
     private readonly botFunctions: BotFunctions,
-    private readonly referralSystemService: ReferralSystemService
+    private readonly subscriptionsService: SubscriptionsService
   ) {}
 
   @On("text")

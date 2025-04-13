@@ -1,3 +1,6 @@
+export * from "./xui-config";
+export * from "./xui-stream-settings";
+
 export interface InboundClient {
   id: string;
   flow: string;

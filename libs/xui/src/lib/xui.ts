@@ -98,8 +98,38 @@ async function getClients(location: Location) {
   }
 }
 
+async function updateClient(location: Location, clientId: string, data: { expiryTime: number, enabled: boolean }) {
+  try {
+    const api = generateApi(location)
+
+    const cookies = await login(location);
+
+    const response = await api.post(`/panel/api/inbounds/updateClient/${clientId}`, {
+      id: 1,
+      settings: JSON.stringify({
+        clients: [{
+          id: clientId,
+          ...data
+        }]
+      })
+    }, {
+      headers: {
+        "Cookie": cookies
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.log({ error });
+    return error;
+  }
+}
+
+
+
 export const xuiApi = {
   addClientToInbound,
   getClients,
   login,
+  updateClient
 };

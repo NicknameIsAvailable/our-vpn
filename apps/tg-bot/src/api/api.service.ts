@@ -1,3 +1,4 @@
+import { ExtendConfigResponse } from 'types/dto/config-dto/response/extend-config-response';
 import { PromoCodeExtended } from 'types/promocode-extended';
 import { TgUserFullData } from 'types/tg-user-full-data';
 import { RatingItem } from 'types/rating-item';
@@ -7,10 +8,12 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { CreateConfig } from 'types/create-config';
 import { ClientLocation } from 'types/client-location';
-import { Config, Invoice, Level, PromoCode, TgUser, UserProgress } from '@prisma/client';
+import { Config, Invoice, Level, PromoCode, TgUser } from '@prisma/client';
 import { Checkout } from 'types/checkout';
 import { IGetPaymentList, Payment } from '@a2seven/yoo-checkout';
 import { MyContext } from '../types/my-context';
+import { ExtendedConfig } from 'types/extended-config';
+import { ExtendConfigDto } from 'types/dto/config-dto/request/extend-config-dto';
 
 @Injectable()
 export class ApiService {
@@ -115,8 +118,12 @@ export class ApiService {
     return (await this.request<Config[]>(ctx, 'GET', '/v1/configs', null, { userId: ctx.from.id })) || [];
   }
 
-  async getConfigById(ctx: MyContext, id: string): Promise<Config | null> {
-    return this.request<Config>(ctx, 'GET', `/v1/configs/${id}`);
+  async getConfigById(ctx: MyContext, id: string): Promise<ExtendedConfig | null> {
+    return this.request<ExtendedConfig>(ctx, 'GET', `/v1/configs/${id}`);
+  }
+
+  async extendConfig(ctx: MyContext, id: string, extendConfigDto: ExtendConfigDto): Promise<ExtendConfigResponse | null> {
+    return this.request<ExtendConfigResponse>(ctx, 'POST', `/v1/configs/${id}/extend`, extendConfigDto);
   }
 
   async createConfig(ctx: MyContext, configData: CreateConfig): Promise<Config | null> {

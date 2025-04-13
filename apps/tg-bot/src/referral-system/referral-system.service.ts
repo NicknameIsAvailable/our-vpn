@@ -6,12 +6,14 @@ import { ExtendedUserProgress } from 'types/extended-progress';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { BotFunctions } from '../bot/functions';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 @Injectable()
 export class ReferralSystemService {
   constructor(
     private readonly apiService: ApiService,
     @InjectBot() private readonly bot: Telegraf<MyContext>,
-    private readonly botFunctions: BotFunctions
+    private readonly botFunctions: BotFunctions,
+    private readonly subscriptionsService: SubscriptionsService
   ) {}
 
   async handleCallbackData(ctx: MyContext) {
@@ -89,21 +91,21 @@ export class ReferralSystemService {
 
   async sendCreateReferralSystemProposal(ctx: MyContext) {
     const message = `
-🔥 *Добро пожаловать в реферальную систему\\!* 🔥
+🎯 *Добро пожаловать в реферальную программу!* 🎯
 
-Тут всё просто: зовёшь друзей — получаешь ништяки
+Приглашайте друзей и получайте крутые бонусы:
 
-✅ *Многоуровневая рефералка* — чем больше друзей ты приводишь, тем выше твой уровень\\.
-🎁 *Бонусы на каждом этапе* — дополнительные дни подписки, жирные скидки на VPN и прочие плюшки\\.
-💎 *Уважение среди друзей* — ведь ты шаришь за топовые сервисы и делишься ими\\!
+• 🚀 Многоуровневая система — чем больше друзей, тем выше уровень
+• 🎁 Бонусы на каждом этапе — дни подписки и скидки на VPN
+• 💎 Статус среди друзей — вы знаете о лучших сервисах
 
-Присоединяйся\\!👇
+Присоединяйтесь прямо сейчас! 👇
     `;
 
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
-          [{ text: "🚀 Вступить в рефералку", callback_data: "join_referral" }],
+          [{ text: "🚀 Вступить в программу", callback_data: "join_referral" }],
           [{ text: "❌ Отказаться", callback_data: "decline_referral" }]
         ]
       }
@@ -114,10 +116,10 @@ export class ReferralSystemService {
 
   async sendCreateReferralSystem(ctx: MyContext) {
     const loadingMessages = [
-      "🔄 Регистрирую тебя в рефералке",
-      "🔄 Регистрирую тебя в рефералке.",
-      "🔄 Регистрирую тебя в рефералке..",
-      "🔄 Регистрирую тебя в рефералке..."
+      "🔄 Регистрация в реферальной программе",
+      "🔄 Регистрация в реферальной программе.",
+      "🔄 Регистрация в реферальной программе..",
+      "🔄 Регистрация в реферальной программе..."
     ];
     let i = 0;
 
@@ -137,28 +139,28 @@ export class ReferralSystemService {
 
       clearInterval(interval);
 
-      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✅ Ты в деле! Добро пожаловать в рефералку! 🚀");
+      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✨ Регистрация успешно завершена! Добро пожаловать в реферальную программу! 🚀");
 
       await this.sendReferralSystemControlPanel(ctx, data);
     } catch (error) {
       clearInterval(interval);
-      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "❌ Ошибка при регистрации в рефералке.");
+      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "❌ Произошла ошибка при регистрации. Попробуйте позже.");
     }
   }
 
   async declineReferral(ctx: MyContext) {
-    ctx.editMessageText("Точно не хочешь?", {
+    ctx.editMessageText("Вы уверены, что хотите отказаться от бонусов? 🤔", {
       reply_markup: {
         inline_keyboard: [
-          [{ text: "Ладно, убедил, вступаю", callback_data: "join_referral" }],
-          [{ text: "Не хочу", callback_data: "super_decline_referral" }]
+          [{ text: "✨ Да, давайте присоединимся", callback_data: "join_referral" }],
+          [{ text: "❌ Нет, отказываюсь", callback_data: "super_decline_referral" }]
         ],
       }
     })
   }
 
   async superDeclineReferral(ctx: MyContext) {
-    ctx.editMessageText("Ну и зря 😒")
+    ctx.editMessageText("Жаль, что вы отказались от бонусов 😔\n\nЕсли передумаете, мы всегда рады видеть вас снова! 🌟")
   }
 
   async sendReferralSystemControlPanel(ctx: MyContext, initialData?: ExtendedUserProgress, newMessage?: boolean) {
@@ -176,7 +178,7 @@ export class ReferralSystemService {
     const message = `
 📢 *Реферальная система*
 🏆 Текущий уровень: *${escapeMarkdownV2(currentLevel.label)}*
-👥 Пригласите *${escapeMarkdownV2(String(currentLevel.usersCount))}* друзей и перейдите на следующий уровень
+👥 Пригласите *${escapeMarkdownV2(String(data.referralCount || 0))}/${escapeMarkdownV2(String(currentLevel.usersCount))}* друзей и перейдите на следующий уровень
 
 🎁 Бонусы следующего уровня:
 ${currentLevel.instantBonusDays ? `\\- *${escapeMarkdownV2(String(currentLevel.instantBonusDays))} дней* подписки сразу` : ""}
@@ -366,19 +368,22 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
     let data = await this.apiService.getMyPromoCode(ctx);
 
     if (!data) {
-      await ctx.editMessageText("🔄 Генерирую ссылку для приглашения...");
+      await ctx.editMessageText("🔄 Генерирую вашу реферальную ссылку...");
       data = await this.apiService.createMyPromoCode(ctx);
     }
 
     const message = `
-🚀 *Ваш реферальный промокод готов\\!*
-🎟 *Код:* \`${data.code}\`
-🔗 *Ссылка:* [тык сюда](${data.url})
-🎁 *Бонус за активацию:* ${data.bonusDays} дней подписки
-💰 *Скидка для рефералов:* ${data.referralDiscountPercent}%
-🔥 *Использований:* ${data.usesCount}
+🎯 *Ваш реферальный промокод готов!*
 
-*Поделись с друзьями и получай бонусы\\!*
+📝 *Код:* \`${data.code}\`
+🔗 *Ссылка:* [тык сюда](${data.url})
+
+🎁 *Бонусы:*
+• ${data.bonusDays} дней подписки за активацию
+• ${data.referralDiscountPercent}% скидка для рефералов
+• ${data.usesCount} использований осталось
+
+*Поделитесь с друзьями и получайте бонусы!* 🚀
     `;
 
     const keyboard = {
@@ -386,8 +391,8 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
         inline_keyboard: [
           [
             {
-              text: "📲 Поделиться",
-              switch_inline_query: `Привет! Подключайся к 💪 Нашему ВПН, вот промокод: [${data.code}](${data.url})`
+              text: "📤 Поделиться",
+              switch_inline_query: `Привет! Подключайся к нашему VPN, вот промокод: [${data.code}](${data.url})`
             }
           ],
           [this.menuButton]
@@ -635,6 +640,6 @@ ${promoCodeData.description}
       return ctx.editMessageText("❌ Промокод не выбран\\.", { parse_mode: "MarkdownV2" });
     }
 
-    this.botFunctions.showSubscriptionOptions(ctx);
+    this.subscriptionsService.showSubscriptionOptions(ctx);
   }
 }
