@@ -14,7 +14,7 @@ import { countryToEmoji } from 'functions/country-to-emoji';
 export class SubscriptionsService {
   private timers = new Map<string, NodeJS.Timeout>();
   private readonly supportUrl = process.env.TELEGRAM_SUPPORT_URL || 'https://t.me/support';
-
+  private botName = process.env.BOT_NAME;
   constructor(
     private readonly apiService: ApiService,
     @Inject(forwardRef(() => ConfigsService))
@@ -49,6 +49,23 @@ export class SubscriptionsService {
                 { text: "✨ Новая", callback_data: "subscribe_command" }
               ],
               [{ text: "🔑 Мои ключи", callback_data: "connections" }]
+            ]
+          }
+        }
+      )
+    } else {
+      await ctx.reply(
+        `✨ *Добро пожаловать в наш VPN сервис\\!*\n\n` +
+        `🎁 *Преимущества подписки:*\n\n` +
+        `• Получите VPN ключ в нашем сервисе\n` +
+        `• Самый быстрый VPN на рынке\n` +
+        `• Возможность создать VPN соединение на любом из наших серверов\n\n` +
+        `🚀 *Начните использовать ${this.botName} прямо сейчас\\!*`,
+        {
+          parse_mode: "MarkdownV2",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔥 Оформить подписку", callback_data: "subscribe_command" }]
             ]
           }
         }
