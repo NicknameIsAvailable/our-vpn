@@ -49,9 +49,9 @@ export class ConfigsService {
       configName = isTrial ? `${username} trial` : `${username} ${payment.invoice_payload}`;
 
       if (!isTrial)
-        await ctx.reply('💸 Спасибо за оплату! 🙏')
+        await ctx.reply('💸 Спасибо за оплату\\! 🙏')
 
-      await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}...`);
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}\\.\\.\\.`);
 
       console.log("✅ Перед вызовом createConfig");
 
@@ -193,7 +193,7 @@ export class ConfigsService {
 
       if (!client) {
         console.log('Config not found');
-        return ctx.answerCbQuery("❌ Конфиг не найден!", { show_alert: true });
+        return ctx.answerCbQuery("❌ Конфиг не найден\\!", { show_alert: true });
       }
 
       const caption = this.showUserConfig(client)
@@ -236,7 +236,7 @@ export class ConfigsService {
     });
     if (data) {
       await ctx.reply(
-        `✨ *Подписка успешно продлена!*\n\n` +
+        `✨ *Подписка успешно продлена\\!*\n\n` +
         `🔑 Ключ: ${configToExtend.name}\n` +
         `⏳ Продлено на: ${data.daysAdded} дней\n` +
         `📅 Действует до: ${moment(Number(data.expiryTime)).format("DD.MM.YYYY HH:mm")}`,
@@ -252,7 +252,7 @@ export class ConfigsService {
     } else {
       await ctx.reply(
         `❌ *Произошла ошибка*\n\n` +
-        `Не удалось продлить подписку. Пожалуйста, попробуйте позже или обратитесь в поддержку.`,
+        `Не удалось продлить подписку\\. Пожалуйста, попробуйте позже или обратитесь в поддержку\\.`,
         {
           parse_mode: "MarkdownV2",
           reply_markup: {

@@ -34,12 +34,12 @@ export class BotService {
         await this.referralSystemService.savePromoCode(ctx, promoCode);
       } else {
         await ctx.reply(
-          `👋 Привет! Я *${botName}* — твой личный супер-помощник по VPN. 👨‍💻🚀
+          `👋 Привет\\!Я *${botName}* — твой личный супер-помощник по VPN. 👨‍💻🚀
           Я готов помочь тебе с подключением и настройкой. Вот что я умею:\n\n` +
           `⚡ /subscribe — Купи подписку и получи доступ к VPN 🔒\n` +
-          `🛠 /help — Гайд по настройке VPN. Всё, что нужно знать! 📖\n` +
+          `🛠 /help — Гайд по настройке VPN. Всё, что нужно знать\\!📖\n` +
           `🔑 /connections — Посмотри свой список подключений и настрой их на устройствах 📱💻\n\n` +
-          `👇 Нажми на кнопку, чтобы попасть в панель управления. Все настройки в одном месте! ⚙️`,
+          `👇 Нажми на кнопку, чтобы попасть в панель управления. Все настройки в одном месте\\!⚙️`,
           {
             parse_mode: "Markdown",
             reply_markup: {
@@ -375,7 +375,7 @@ export class BotService {
                 console.error(`Error processing step ${step.number}:`, error);
               }
             }
-            await ctx.reply(escapeMarkdownV2("Поздравляем! Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
+            await ctx.reply(escapeMarkdownV2("Поздравляем\\!Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
           } else {
             await ctx.answerCbQuery();
             await ctx.reply("Инструкция не найдена 😢");
@@ -449,7 +449,7 @@ export class BotService {
         await ctx.answerPreCheckoutQuery(true);
       } catch (error) {
         console.error('Ошибка предавторизации платежа:', error);
-        await ctx.reply('🚫 Ошибка предавторизации платежа! \n Подождите немного, возможно, есть проблемы с сервером. 💥');
+        await ctx.reply('🚫 Ошибка предавторизации платежа\\!\n Подождите немного, возможно, есть проблемы с сервером. 💥');
       }
     });
 

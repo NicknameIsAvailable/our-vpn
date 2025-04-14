@@ -59,7 +59,7 @@ export class BotFunctions {
 
     if (configs.length === 0) {
       return ctx.reply(
-        "✨ Похоже, у вас еще нет конфигов! 🚀 \n Ничего страшного! Вам нужно оформить подписку и мы всё сделаем! 💪",
+        "✨ Похоже, у вас еще нет конфигов\\! 🚀 \n Ничего страшного\\! Вам нужно оформить подписку и мы всё сделаем\\! 💪",
         {
           reply_markup: {
             inline_keyboard: [
@@ -90,9 +90,9 @@ export class BotFunctions {
     try {
       this.subscriptionsService.handleCancelPayment(ctx as MyContext);
 
-      await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь! 💡");
+      await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь\\! 💡");
 
-      await ctx.reply("🖥️ Выберите свою ОС: \n Какие у тебя предпочтения? 🤔 Мы тебе поможем с настройкой! 🚀", {
+      await ctx.reply("🖥️ Выберите свою ОС: \n Какие у тебя предпочтения? 🤔 Мы тебе поможем с настройкой\\! 🚀", {
         reply_markup: {
           inline_keyboard: [
             ...osList.map(os => ([{
@@ -135,7 +135,7 @@ export class BotFunctions {
   }
 
   openMenu = async (ctx: Context) => {
-    await ctx.reply("📋 Панель управления 💼 \n Ты в главном меню! 🔧", {
+    await ctx.reply("📋 Панель управления 💼 \n Ты в главном меню\\! 🔧", {
       reply_markup: {
         keyboard: [
           [{ text: "⚙ Получить ссылки для подключения" }],

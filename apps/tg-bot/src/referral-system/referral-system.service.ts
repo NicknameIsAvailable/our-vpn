@@ -91,7 +91,7 @@ export class ReferralSystemService {
 
   async sendCreateReferralSystemProposal(ctx: MyContext) {
     const message = `
-🎯 *Добро пожаловать в реферальную программу!* 🎯
+🎯 *Добро пожаловать в реферальную программу\\!* 🎯
 
 Приглашайте друзей и получайте крутые бонусы:
 
@@ -99,7 +99,7 @@ export class ReferralSystemService {
 • 🎁 Бонусы на каждом этапе — дни подписки и скидки на VPN
 • 💎 Статус среди друзей — вы знаете о лучших сервисах
 
-Присоединяйтесь прямо сейчас! 👇
+Присоединяйтесь прямо сейчас\\! 👇
     `;
 
     const keyboard = {
@@ -139,7 +139,7 @@ export class ReferralSystemService {
 
       clearInterval(interval);
 
-      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✨ Регистрация успешно завершена! Добро пожаловать в реферальную программу! 🚀");
+      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✨ Регистрация успешно завершена\\!Добро пожаловать в реферальную программу\\!🚀");
 
       await this.sendReferralSystemControlPanel(ctx, data);
     } catch (error) {
@@ -160,7 +160,7 @@ export class ReferralSystemService {
   }
 
   async superDeclineReferral(ctx: MyContext) {
-    ctx.editMessageText("Жаль, что вы отказались от бонусов 😔\n\nЕсли передумаете, мы всегда рады видеть вас снова! 🌟")
+    ctx.editMessageText("Жаль, что вы отказались от бонусов 😔\n\nЕсли передумаете, мы всегда рады видеть вас снова\\!🌟")
   }
 
   async sendReferralSystemControlPanel(ctx: MyContext, initialData?: ExtendedUserProgress, newMessage?: boolean) {
@@ -373,7 +373,7 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
     }
 
     const message = `
-🎯 *Ваш реферальный промокод готов!*
+🎯 *Ваш реферальный промокод готов\\!*
 
 📝 *Код:* \`${data.code}\`
 🔗 *Ссылка:* [тык сюда](${data.url})
@@ -383,7 +383,7 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
 • ${data.referralDiscountPercent}% скидка для рефералов
 • ${data.usesCount} использований осталось
 
-*Поделитесь с друзьями и получайте бонусы!* 🚀
+*Поделитесь с друзьями и получайте бонусы\\!* 🚀
     `;
 
     const keyboard = {
@@ -392,7 +392,7 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
           [
             {
               text: "📤 Поделиться",
-              switch_inline_query: `Привет! Подключайся к нашему VPN, вот промокод: [${data.code}](${data.url})`
+              switch_inline_query: `Привет\\! Подключайся к нашему VPN, вот промокод: [${data.code}](${data.url})`
             }
           ],
           [this.menuButton]
