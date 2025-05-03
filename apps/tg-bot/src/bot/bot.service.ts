@@ -449,7 +449,7 @@ export class BotService {
         await ctx.answerPreCheckoutQuery(true);
       } catch (error) {
         console.error('Ошибка предавторизации платежа:', error);
-        await ctx.reply('🚫 Ошибка предавторизации платежа\\!\n Подождите немного, возможно, есть проблемы с сервером. 💥');
+        await ctx.reply('🚫 Ошибка предавторизации платежа\\!\n Подождите немного, возможно, есть проблемы с сервером. 💥', {parse_mode: "MarkdownV2"});
       }
     });
 

@@ -168,7 +168,7 @@ export class SubscriptionsService {
       })
     } catch (error) {
       console.error('⚠️ Ошибка при выставлении счета!', error);
-      await ctx.reply('⚠️ Ошибка при выставлении счета\\!\n Мы столкнулись с проблемой… 😕 \n Попробуйте снова через пару минут. ⏳');
+      await ctx.reply('⚠️ Ошибка при выставлении счета\\!\n Мы столкнулись с проблемой… 😕 \n Попробуйте снова через пару минут. ⏳', { parse_mode: "MarkdownV2" });
     }
   }
 
@@ -586,7 +586,7 @@ export class SubscriptionsService {
 
       const locations = await this.apiService.getLocations(ctx);
       if (locations.length === 0) {
-        return await ctx.reply("⚠️ Нет доступных серверов\\.");
+        return await ctx.reply("⚠️ Нет доступных серверов.");
       }
 
       const message = await ctx.reply("🌍 Выберите страну для подключения:", {
@@ -603,7 +603,7 @@ export class SubscriptionsService {
       ctx.session = { ...ctx.session, locationMessageId: message.message_id, subscriptionMessageId: message.message_id };
     } catch (error) {
       console.error('Ошибка обработки подписки:', error);
-      await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой\\.', {
+      await ctx.reply('Произошла ошибка при активации подписки. Свяжитесь с поддержкой.', {
         reply_markup: {
           inline_keyboard: [
             [{ text: "🆘 Поддержка", url: this.supportUrl }, { text: "Инструкция по использованию VPN", callback_data: "guide" }]

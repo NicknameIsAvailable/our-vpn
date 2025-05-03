@@ -239,7 +239,7 @@ ${currentLevel.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(currentLe
       const data = await this.apiService.getReferralSystemRating(ctx);
 
       if (!data || data.length === 0) {
-        ctx.reply('❌ Нет данных о рефералах\\.');
+        ctx.reply('❌ Нет данных о рефералах.');
         return;
       }
 
@@ -392,7 +392,8 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
           [
             {
               text: "📤 Поделиться",
-              switch_inline_query: `Привет\\! Подключайся к нашему VPN, вот промокод: [${data.code}](${data.url})`
+              switch_inline_query: `Привет! Подключайся к нашему VPN, вот промокод: <a href="${data.url}">${data.code}</a>`,
+              parse_mode: "HTML"
             }
           ],
           [this.menuButton]
@@ -430,14 +431,14 @@ ${promoCodeData.description}
 Использован ${promoCodeData.users.length} раз из ${promoCodeData.usesCount}`).catch(() => ctx.reply(`✅ Промокод найден\\!
 Код: ${promoCodeData.code}
 ${promoCodeData.description}
-Использован ${promoCodeData.users.length} раз из ${promoCodeData.usesCount}`));
+Использован ${promoCodeData.users.length} раз из ${promoCodeData.usesCount}`, {parse_mode: "MarkdownV2"}));
 
     await ctx.reply("🔃 Сохраняю промокод...");
 
     const data = await this.apiService.savePromoCode(ctx, promoCodeData.id);
 
     if (data) {
-        return ctx.reply(`✅ Промокод ${promoCodeData.code} сохранен\\! Вы можете использовать его при следующей покупке 👇`, {
+        return ctx.reply(`✅ Промокод ${promoCodeData.code} сохранен! Вы можете использовать его при следующей покупке 👇`, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "🔥 Подписаться 💳", callback_data: "subscribe_command" }],
@@ -614,7 +615,7 @@ ${promoCodeData.description}
     const data = await this.apiService.savePromoCode(ctx, promoCode.id);
 
     if (data) {
-        return ctx.reply(`✅ Промокод ${promoCode.code} сохранен\\! Вы можете использовать его при следующей покупке 👇`, {
+        return ctx.reply(`✅ Промокод ${promoCode.code} сохранен! Вы можете использовать его при следующей покупке 👇`, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "🔥 Подписаться 💳", callback_data: "subscribe_command" }],

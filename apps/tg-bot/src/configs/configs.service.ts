@@ -29,9 +29,9 @@ export class ConfigsService {
       const data = (ctx as any).callbackQuery?.data;
       if (!data) return;
       const messageId = ctx.callbackQuery.message.message_id;
-      const location = ctx.session.location;
+      const locationId = ctx.session.location as any as string;
 
-      if (!location) return;
+      if (!locationId) return;
 
       let months = 1;
       let configName = `${ctx.from.username}-${Math.floor(Date.now() / 1000)}`;
@@ -49,9 +49,15 @@ export class ConfigsService {
       configName = isTrial ? `${username} trial` : `${username} ${payment.invoice_payload}`;
 
       if (!isTrial)
-        await ctx.reply('💸 Спасибо за оплату\\! 🙏')
+        await ctx.reply('💸 Спасибо за оплату! 🙏')
 
-      await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}\\.\\.\\.`);
+      console.log({locationId})
+
+      const location = await this.apiService.getLocationById(ctx, locationId.split("_")[2]);
+
+      console.log({location})
+
+      await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}...`);
 
       console.log("✅ Перед вызовом createConfig");
 
@@ -63,7 +69,7 @@ export class ConfigsService {
         name: configName,
         locationId: location.id,
         price: payment?.total_amount || 0,
-        promoCode: ""
+        promoCode: ctx.session?.selectedPromoCode?.id || ""
       };
 
       const config = await this.apiService.createConfig(ctx, configData);
@@ -81,9 +87,9 @@ export class ConfigsService {
           await ctx.replyWithPhoto(
             { source: qrPath },
             {
-              caption: `✨ *Ваше подключение готово!*\n\n` +
+              caption: `✨ *Ваше подключение готово\\!*\n\n` +
                       `🔑 Ваш ключ:\n\`\`\`${config.vlessUrl}\`\`\`\n\n` +
-                      `📱 Отсканируйте QR-код или скопируйте ключ\n` +
+                      `📱 Отсканируйте QR\\-код или скопируйте ключ\n` +
                       `❓ Нужна помощь? Нажмите кнопку ниже 👇`,
               parse_mode: "MarkdownV2",
               reply_markup: {
@@ -94,8 +100,8 @@ export class ConfigsService {
         } catch (error) {
           console.error('Ошибка при создании QR-кода:', error);
           await ctx.reply(
-            `⚠️ *Что-то пошло не так*\n\n` +
-            `Не удалось сгенерировать QR-код. Не волнуйтесь, вы все равно можете использовать текстовый ключ.\n\n` +
+            `⚠️ *Что\\-то пошло не так*\n\n` +
+            `Не удалось сгенерировать QR\\-код\\. Не волнуйтесь, вы все равно можете использовать текстовый ключ\\.\n\n` +
             `Если нужна помощь, обратитесь в поддержку 👇`,
             {
               parse_mode: "MarkdownV2",
@@ -134,7 +140,7 @@ export class ConfigsService {
 
       console.error("Ошибка при генерации подключения:", error);
       await ctx.reply(
-        `⚠️ *Что-то пошло не так*\n\n` +
+        `⚠️ *Что\\-то пошло не так*\n\n` +
         `К сожалению, произошла ошибка. Не волнуйтесь, мы уже работаем над её устранением.\n\n` +
         `Вы можете:\n` +
         `• Попробовать снова\n` +
@@ -193,7 +199,7 @@ export class ConfigsService {
 
       if (!client) {
         console.log('Config not found');
-        return ctx.answerCbQuery("❌ Конфиг не найден\\!", { show_alert: true });
+        return ctx.answerCbQuery("❌ Подключение не найдено\\!", { show_alert: true });
       }
 
       const caption = this.showUserConfig(client)

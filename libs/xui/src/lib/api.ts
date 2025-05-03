@@ -4,6 +4,8 @@ import * as https from "https";
 import { Location } from "@prisma/client";
 
 export function generateApi(location: Location) {
+  console.log("generateApi")
+
   const api = axios.create({
     baseURL: location.url,
     headers: {
@@ -14,10 +16,14 @@ export function generateApi(location: Location) {
     httpsAgent: new https.Agent({ rejectUnauthorized: config.isProd })
   })
 
+  console.log("generateApi", 2)
+
   api.interceptors.request.use(
     (config) => config,
     (error) => Promise.reject(error),
   );
+
+  console.log("generateApi", 3)
 
   api.interceptors.response.use(
     (response) => response,
@@ -26,6 +32,8 @@ export function generateApi(location: Location) {
       return Promise.reject(error.response);
     },
   )
+
+  console.log("generateApi", 4)
 
   return api
 }

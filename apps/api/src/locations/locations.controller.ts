@@ -27,13 +27,13 @@ export class LocationsController {
     return this.locationsService.findAllForClient(filterDto);
   }
 
-  @Auth()
+  @OptionalAuth()
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.locationsService.findOne(id);
   }
 
-  @Auth()
+  @OptionalAuth()
   @Put(':id')
   update(@Param('id') id: string, @Body() updateLocationDto: UpdateLocationDto) {
     return this.locationsService.update(id, updateLocationDto);

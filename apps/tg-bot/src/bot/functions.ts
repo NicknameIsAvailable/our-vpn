@@ -61,6 +61,7 @@ export class BotFunctions {
       return ctx.reply(
         "✨ Похоже, у вас еще нет конфигов\\! 🚀 \n Ничего страшного\\! Вам нужно оформить подписку и мы всё сделаем\\! 💪",
         {
+          parse_mode: "MarkdownV2",
           reply_markup: {
             inline_keyboard: [
               [{ text: "🔥 Подписаться 💳", callback_data: "subscribe_command" }],
@@ -90,9 +91,10 @@ export class BotFunctions {
     try {
       this.subscriptionsService.handleCancelPayment(ctx as MyContext);
 
-      await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь\\! 💡");
+      await ctx.reply("📖 Как пользоваться ВПН: \n Нужен гайд? Мы здесь, чтобы помочь\\! 💡", {parse_mode: "MarkdownV2"});
 
       await ctx.reply("🖥️ Выберите свою ОС: \n Какие у тебя предпочтения? 🤔 Мы тебе поможем с настройкой\\! 🚀", {
+        parse_mode: "MarkdownV2",
         reply_markup: {
           inline_keyboard: [
             ...osList.map(os => ([{
@@ -136,6 +138,7 @@ export class BotFunctions {
 
   openMenu = async (ctx: Context) => {
     await ctx.reply("📋 Панель управления 💼 \n Ты в главном меню\\! 🔧", {
+      parse_mode: "MarkdownV2",
       reply_markup: {
         keyboard: [
           [{ text: "⚙ Получить ссылки для подключения" }],

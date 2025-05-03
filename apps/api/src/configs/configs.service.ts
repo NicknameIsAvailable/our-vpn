@@ -1,10 +1,11 @@
-import { InboundResponse, xuiApi } from '@nash-vpn/xui';
+import { InboundResponse, xuiApi, XUIConfig } from '@nash-vpn/xui';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@nash-vpn/db';
 import { Location, PromoCode } from "@prisma/client";
 import { parseXUIConfig } from '@nash-vpn/xui';
 import { CreateConfigRequestDto } from './dto/create-config.dto';
 import { ExtendConfigDto } from './dto/extend-config.dto';
+import { generateRandomString } from 'functions/generate-random-string';
 @Injectable()
 export class ConfigsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -15,7 +16,7 @@ export class ConfigsService {
     email: string,
     username: string,
     tgUserId: string,
-  ) {
+  ): Promise<InboundResponse> {
     const response = await xuiApi.addClientToInbound(location, {
       expiryTime,
       email,
@@ -23,10 +24,11 @@ export class ConfigsService {
       tgUserId
     })
 
-    if (response.success) {
+    if (response?.success) {
       const inbound = await xuiApi.getClients(location)
       return inbound
     }
+    throw new Error('Failed to generate inbound');
   }
 
   private getVlessLinks(config: InboundResponse, location: Location): string[] {
@@ -57,21 +59,6 @@ export class ConfigsService {
     return [];
   }
 
-  private generateRandomEmail(): string {
-    const chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
-    const domains: string[] = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com'];
-
-    const length: number = Math.floor(Math.random() * 10) + 5; // длина от 5 до 15 символов
-    let email = '';
-
-    for(let i = 0; i < length; i++) {
-      email += chars[Math.floor(Math.random() * chars.length)];
-    }
-
-    const domain = domains[Math.floor(Math.random() * domains.length)];
-    return `${email}@${domain}`;
-  }
-
   async create(createConfigDto: CreateConfigRequestDto) {
     let expiryTime: number;
     let promoCode: PromoCode | null = null;
@@ -90,12 +77,11 @@ export class ConfigsService {
       throw new Error('Promo code not found');
     }
 
-    const email = this.generateRandomEmail();
+    const email = `${createConfigDto.username ? createConfigDto.username : createConfigDto.tgUserId}-${createConfigDto.months}m-${generateRandomString(8)}@our-vpn.pro`;
     const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } });
 
-    console.log({ expiryTime })
+    const config: InboundResponse = await this.generateInbound(location, expiryTime, email, createConfigDto.name, createConfigDto.tgUserId);
 
-    const config: any = await this.generateInbound(location, expiryTime, email, createConfigDto.name, createConfigDto.tgUserId);
     const vlessUrls = this.getVlessLinks(config, location);
 
     const data = await this.prisma.config.create({
@@ -119,6 +105,7 @@ export class ConfigsService {
             city: true,
             coordinates: true,
             label: true,
+            comment: true,
           }
         }
       }
@@ -127,7 +114,7 @@ export class ConfigsService {
     return {
       ...data,
       expiryTime: data.expiryTime.toString(),
-      tgUserId: config.tgUserId ? config.tgUserId.toString() : null
+      tgUserId: data.tgUserId ? data.tgUserId.toString() : null
     }
   }
 
@@ -139,9 +126,11 @@ export class ConfigsService {
           select: {
             id: true,
             name: true,
+            comment: true,
             country: true,
             city: true,
-            coordinates: true
+            coordinates: true,
+            label: true,
           }
         }
       }
@@ -164,6 +153,7 @@ export class ConfigsService {
           city: true,
           coordinates: true,
           label: true,
+          comment: true,
         }
       }
     }});

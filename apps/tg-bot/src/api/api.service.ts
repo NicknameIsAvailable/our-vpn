@@ -90,7 +90,6 @@ export class ApiService {
           data,
           params,
           headers: {
-            // Authorization: `Bearer ${process.env.API_TOKEN}`,
             tguserid: tgUserId.toString(),
           },
         })
@@ -128,6 +127,10 @@ export class ApiService {
 
   async createConfig(ctx: MyContext, configData: CreateConfig): Promise<Config | null> {
     return this.request<Config>(ctx, 'POST', '/v1/configs', configData);
+  }
+
+  async getLocationById(ctx: MyContext, id: string): Promise<ClientLocation | null> {
+    return this.request<ClientLocation>(ctx, 'GET', `/v1/locations/${id}`);
   }
 
   async getLocations(ctx: MyContext): Promise<ClientLocation[]> {
