@@ -108,19 +108,19 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayNG из Google Play\\.",
+        text: "Скачай <b>V2RayNG</b> из Google Play.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2rayng-android', 'step-1.png')]
       },
       {
         number: 2,
         name: "Добавление конфигурации",
-        text: `- Открой приложение → нажми "+" → выбери "Scan QR Code" или "Import Config". \n - Введи ссылку VLess, полученную из бота.`,
+        text: `- Открой приложение → нажми "+" → выбери "Scan QR Code" или "Import Config".\n- Введи ссылку VLess, полученную из бота.`,
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2rayng-android', 'step-2.png')]
       },
       {
         number: 3,
         name: "Подключение к VPN",
-        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        text: `- Выбери импортированный профиль.\n- Нажми кнопку "Start" для подключения.`,
         images: []
       },
     ]
@@ -133,19 +133,19 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayTun из Google Play\\.",
+        text: "Скачай <b>V2RayTun</b> из Google Play.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-android', 'step-1.png')]
       },
       {
         number: 2,
         name: "Добавление конфигурации",
-        text: `- Открой приложение → Нажми "+" → выбери "Import from URL" или "Scan QR Code" \n - Введи ссылку VLess, полученную из бота.`,
+        text: `- Открой приложение → нажми "+" → выбери "Import from URL" или "Scan QR Code".\n- Введи ссылку VLess, полученную из бота.`,
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-android', 'step-2.png')]
       },
       {
         number: 3,
         name: "Подключение к VPN",
-        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        text: `- Выбери импортированный профиль.\n- Нажми кнопку "Start" для подключения.`,
         images: []
       },
     ]
@@ -158,19 +158,19 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай V2RayTun из App Store\\.",
+        text: "Скачай <b>V2RayTun</b> из App Store.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-ios', 'step-1.png')]
       },
       {
         number: 2,
         name: "Добавление конфигурации",
-        text: `- Нажми "+" → выбери  "Добавить из буфера" \n - Вставь ссылку VLess, полученную из бота в буфер обмена.`,
+        text: `- Нажми "+" → выбери "Добавить из буфера".\n- Вставь ссылку VLess, полученную из бота в буфер обмена.`,
         images: [path.join(process.cwd(), 'assets', 'instructions', 'v2raytun-ios', 'step-2.png')]
       },
       {
         number: 3,
         name: "Подключение к VPN",
-        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        text: `- Выбери импортированный профиль.\n- Нажми кнопку "Start" для подключения.`,
         images: []
       },
     ]
@@ -183,19 +183,19 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай Hiddify из App Store\\.",
+        text: "Скачай <b>Hiddify</b> из App Store.",
         images: [path.join(process.cwd(), 'assets', 'instructions', 'hiddify-ios', 'step-1.png')]
       },
       {
         number: 2,
         name: "Добавление конфигурации",
-        text: `- Открой приложение \n- Нажми "+" → выбери "Добавить из буфера обмена" \n- Вставь VLess-ссылку или загрузи конфигурационный файл.`,
+        text: `- Открой приложение\n - Нажми "+" → выбери "Добавить из буфера обмена"\n- Вставь VLess-ссылку или загрузи конфигурационный файл.`,
         images: [path.join(process.cwd(), 'assets', 'instructions', 'hiddify-ios', 'step-2.png')]
       },
       {
         number: 3,
         name: "Подключение к VPN",
-        text: `- Выбери импортированный профиль. \n - Нажми кнопку "Start" для подключения.`,
+        text: `- Выбери импортированный профиль.\n- Нажми кнопку "Start" для подключения.`,
         images: []
       },
     ]
@@ -208,13 +208,13 @@ export const instructions: Instruction[] = [
       {
         number: 1,
         name: "Установка приложения",
-        text: "Скачай Hiddify с официального сайта",
+        text: "Скачай <b>Hiddify</b> с официального сайта.",
         images: []
       },
       {
         number: 2,
-        name: "Установка приложения",
-        text: "😟 К сожалению, мы еще не успели расписать подробные шаги подключения к VPN через Hiddify. Но не растраивайтесь, скоро сделаем 😅. Вы справитесь! 💪 Там все просто",
+        name: "Инструкция в разработке",
+        text: "😟 <i>К сожалению, мы еще не успели расписать подробные шаги подключения к VPN через Hiddify. Но не растраивайтесь, скоро сделаем 😅. Вы справитесь!</i> 💪 Там всё просто.",
         images: []
       },
     ]

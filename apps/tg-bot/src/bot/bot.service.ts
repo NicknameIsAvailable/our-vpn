@@ -318,9 +318,9 @@ export class BotService {
               }]));
 
               await ctx.editMessageText(
-                `Выберите свое VPN приложение для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только приложения из списка ниже: \n 🔐 Вот список поддерживаемых приложений 🔧`,
+                escapeMarkdownV2(`Выберите свое VPN приложение для *${currentOs.name}*. *${botName}* работает на протоколе VLess, поэтому можно использовать только приложения из списка ниже: \n 🔐 Вот список поддерживаемых приложений 🔧`),
                 {
-                  parse_mode: "Markdown",
+                  parse_mode: "MarkdownV2",
                   reply_markup: {
                     inline_keyboard: [
                       ...formattedClients,
@@ -330,7 +330,7 @@ export class BotService {
                 }
               );
             } else {
-              await ctx.editMessageText(`Для *${currentOs.name}* приложений не найдено 😟`);
+              await ctx.editMessageText(`Для *${currentOs.name}* приложений не найдено 😟`, { parse_mode: "MarkdownV2" });
             }
           } else {
             await ctx.answerCbQuery();
@@ -361,21 +361,21 @@ export class BotService {
                 }
 
                 if (media.length > 0) {
-                  media[0].caption = `${step.number}. *${step.name}*\n${step.text}`;
-                  media[0].parse_mode = 'Markdown';
+                  media[0].caption = `${step.number}. <b>${step.name}</b>\n${step.text}`;
+                  media[0].parse_mode = 'HTML';
 
                   await ctx.replyWithMediaGroup(media);
                 } else {
                   await ctx.reply(
-                    `${step.number}. *${step.name}*\n${step.text}`,
-                    { parse_mode: "Markdown" }
+                    `${step.number}. <b>${step.name}</b>\n${step.text}`,
+                    { parse_mode: "HTML" }
                   );
                 }
               } catch (error) {
                 console.error(`Error processing step ${step.number}:`, error);
               }
             }
-            await ctx.reply(escapeMarkdownV2("Поздравляем\\!Теперь ты можешь безопасно пользоваться интернетом через VPN. Если появятся вопросы — пиши в поддержку бота!"), { parse_mode: "MarkdownV2" })
+            await ctx.reply("🔥 <b>Готово!</b> Теперь ты можешь свободно пользоваться интернетом. Если что-то непонятно — сразу пиши в поддержку бота. Мы всегда рядом 💬");
           } else {
             await ctx.answerCbQuery();
             await ctx.reply("Инструкция не найдена 😢");
