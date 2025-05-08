@@ -70,16 +70,12 @@ export class ApiService {
     retry = true
   ): Promise<T | null> {
     const tgUserId = ctx.from?.id;
-    if (!tgUserId) throw new Error('tgUserId не найден');
+    if (!tgUserId) return null;
 
     const user = await this.getUser(ctx);
-    console.log({ user });
-
     if (!user) {
       const isRegistered = await this.registerUser(ctx);
-      if (!isRegistered) {
-        throw new Error('Не удалось зарегистрировать пользователя');
-      }
+      if (!isRegistered) return null;
     }
 
     try {
@@ -99,117 +95,244 @@ export class ApiService {
       console.error(`Ошибка запроса [${method}] ${url}`, error);
 
       if (retry && error.response?.status === 401) {
-        // const isRegistered = await this.registerUser(ctx);
-        // if (isRegistered) {
-          return this.request<T>(ctx, method, url, data, params, false);
-        // }
+        return this.request<T>(ctx, method, url, data, params, false);
       }
 
-      return error;
+      return null;
     }
   }
 
-  async getUserData(ctx: MyContext): Promise<TgUserFullData> {
-    return this.request<TgUserFullData>(ctx, 'GET', '/v1/tg-user/me');
+  async getUserData(ctx: MyContext): Promise<TgUserFullData | null> {
+    try {
+      return await this.request<TgUserFullData>(ctx, 'GET', '/v1/tg-user/me');
+    } catch (e) {
+      console.error('getUserData error:', e);
+      return null;
+    }
   }
 
   async getUserConfigs(ctx: MyContext): Promise<Config[]> {
-    return (await this.request<Config[]>(ctx, 'GET', '/v1/configs', null, { userId: ctx.from.id })) || [];
+    try {
+      return (await this.request<Config[]>(ctx, 'GET', '/v1/configs', null, { userId: ctx.from.id })) || [];
+    } catch (e) {
+      console.error('getUserConfigs error:', e);
+      return [];
+    }
   }
 
   async getConfigById(ctx: MyContext, id: string): Promise<ExtendedConfig | null> {
-    return this.request<ExtendedConfig>(ctx, 'GET', `/v1/configs/${id}`);
+    try {
+      return await this.request<ExtendedConfig>(ctx, 'GET', `/v1/configs/${id}`);
+    } catch (e) {
+      console.error('getConfigById error:', e);
+      return null;
+    }
   }
 
   async extendConfig(ctx: MyContext, id: string, extendConfigDto: ExtendConfigDto): Promise<ExtendConfigResponse | null> {
-    return this.request<ExtendConfigResponse>(ctx, 'POST', `/v1/configs/${id}/extend`, extendConfigDto);
+    try {
+      return await this.request<ExtendConfigResponse>(ctx, 'POST', `/v1/configs/${id}/extend`, extendConfigDto);
+    } catch (e) {
+      console.error('extendConfig error:', e);
+      return null;
+    }
   }
 
   async createConfig(ctx: MyContext, configData: CreateConfig): Promise<Config | null> {
-    return this.request<Config>(ctx, 'POST', '/v1/configs', configData);
+    try {
+      return await this.request<Config>(ctx, 'POST', '/v1/configs', configData);
+    } catch (e) {
+      console.error('createConfig error:', e);
+      return null;
+    }
   }
 
   async getLocationById(ctx: MyContext, id: string): Promise<ClientLocation | null> {
-    return this.request<ClientLocation>(ctx, 'GET', `/v1/locations/${id}`);
+    try {
+      return await this.request<ClientLocation>(ctx, 'GET', `/v1/locations/${id}`);
+    } catch (e) {
+      console.error('getLocationById error:', e);
+      return null;
+    }
   }
 
   async getLocations(ctx: MyContext): Promise<ClientLocation[]> {
-    return (await this.request<ClientLocation[]>(ctx, 'GET', '/v1/locations')) || [];
+    try {
+      return (await this.request<ClientLocation[]>(ctx, 'GET', '/v1/locations')) || [];
+    } catch (e) {
+      console.error('getLocations error:', e);
+      return [];
+    }
   }
 
   async createInvoice(ctx: MyContext, data: Checkout): Promise<{ payment: IGetPaymentList; data: Invoice } | null> {
-    return this.request<{ payment: IGetPaymentList; data: Invoice }>(ctx, 'POST', '/v1/checkout', data);
+    try {
+      return await this.request<{ payment: IGetPaymentList; data: Invoice }>(ctx, 'POST', '/v1/checkout', data);
+    } catch (e) {
+      console.error('createInvoice error:', e);
+      return null;
+    }
   }
 
   async findInvoice(ctx: MyContext, id: string): Promise<{ data: Invoice; entity: Payment } | null> {
-    return this.request<{ data: Invoice; entity: Payment }>(ctx, 'GET', `/v1/checkout/${id}`);
+    try {
+      return await this.request<{ data: Invoice; entity: Payment }>(ctx, 'GET', `/v1/checkout/${id}`);
+    } catch (e) {
+      console.error('findInvoice error:', e);
+      return null;
+    }
   }
 
   async updateInvoice(ctx: MyContext, id: string, data: Partial<Checkout>): Promise<Checkout | null> {
-    return this.request<Checkout>(ctx, 'PATCH', `/v1/checkout/${id}`, data);
+    try {
+      return await this.request<Checkout>(ctx, 'PATCH', `/v1/checkout/${id}`, data);
+    } catch (e) {
+      console.error('updateInvoice error:', e);
+      return null;
+    }
   }
 
   async deleteWebhookById(ctx: MyContext, id: string): Promise<boolean> {
-    return (await this.request<boolean>(ctx, 'DELETE', `/v1/checkout/hook/${id}`)) ?? false;
+    try {
+      return (await this.request<boolean>(ctx, 'DELETE', `/v1/checkout/hook/${id}`)) ?? false;
+    } catch (e) {
+      console.error('deleteWebhookById error:', e);
+      return false;
+    }
   }
 
-  async getUserProgresses(ctx: MyContext): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/`))
+  async getUserProgresses(ctx: MyContext): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/`);
+    } catch (e) {
+      console.error('getUserProgresses error:', e);
+      return null;
+    }
   }
 
-  async createUserProgress(ctx: MyContext): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`))
+  async createUserProgress(ctx: MyContext): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`);
+    } catch (e) {
+      console.error('createUserProgress error:', e);
+      return null;
+    }
   }
 
-  async createPromoCode(ctx: MyContext): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`))
+  async createPromoCode(ctx: MyContext): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/progresses/`);
+    } catch (e) {
+      console.error('createPromoCode error:', e);
+      return null;
+    }
   }
 
-  async savePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/save/${id}`))
+  async savePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/save/${id}`);
+    } catch (e) {
+      console.error('savePromoCode error:', e);
+      return null;
+    }
   }
 
-  async usePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/use/${id}`))
+  async usePromoCode(ctx: MyContext, id: string): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "POST", `/v1/promo-code/use/${id}`);
+    } catch (e) {
+      console.error('usePromoCode error:', e);
+      return null;
+    }
   }
 
-  async getPromoCodeById(ctx: MyContext, id: string): Promise<PromoCode> {
-    return (await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/${id}`))
+  async getPromoCodeById(ctx: MyContext, id: string): Promise<PromoCode | null> {
+    try {
+      return await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/${id}`);
+    } catch (e) {
+      console.error('getPromoCodeById error:', e);
+      return null;
+    }
   }
 
-  async getUserProgressById(ctx: MyContext, id?: string): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/${id}`))
+  async getUserProgressById(ctx: MyContext, id?: string): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "GET", `/v1/progresses/${id}`);
+    } catch (e) {
+      console.error('getUserProgressById error:', e);
+      return null;
+    }
   }
 
-  async getMyProgress(ctx: MyContext): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "GET", "/v1/progresses/me"))
+  async getMyProgress(ctx: MyContext): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "GET", "/v1/progresses/me");
+    } catch (e) {
+      console.error('getMyProgress error:', e);
+      return null;
+    }
   }
 
-  async getReferralSystemRating(ctx: MyContext): Promise<RatingItem[]> {
-    return (await this.request<RatingItem[]>(ctx, "GET", "/v1/progresses/rating"))
+  async getReferralSystemRating(ctx: MyContext): Promise<RatingItem[] | null> {
+    try {
+      return await this.request<RatingItem[]>(ctx, "GET", "/v1/progresses/rating");
+    } catch (e) {
+      console.error('getReferralSystemRating error:', e);
+      return null;
+    }
   }
 
-  async getLevels(ctx: MyContext): Promise<Level[]> {
-    return (await this.request<Level[]>(ctx, "GET", "/v1/levels"))
+  async getLevels(ctx: MyContext): Promise<Level[] | null> {
+    try {
+      return await this.request<Level[]>(ctx, "GET", "/v1/levels");
+    } catch (e) {
+      console.error('getLevels error:', e);
+      return null;
+    }
   }
 
-  async getLevelById(ctx: MyContext, id: string): Promise<Level> {
-    return (await this.request<Level>(ctx, "GET", `/v1/levels/${id}`))
+  async getLevelById(ctx: MyContext, id: string): Promise<Level | null> {
+    try {
+      return await this.request<Level>(ctx, "GET", `/v1/levels/${id}`);
+    } catch (e) {
+      console.error('getLevelById error:', e);
+      return null;
+    }
   }
 
-  async getMyPromoCode(ctx: MyContext): Promise<PromoCode> {
-    return (await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/my`))
+  async getMyPromoCode(ctx: MyContext): Promise<PromoCode | null> {
+    try {
+      return await this.request<PromoCode>(ctx, "GET", `/v1/promo-code/my`);
+    } catch (e) {
+      console.error('getMyPromoCode error:', e);
+      return null;
+    }
   }
 
-  async getPromoCodeByCode(ctx: MyContext, code: string): Promise<PromoCodeExtended> {
-    return (await this.request<PromoCodeExtended>(ctx, "GET", `/v1/promo-code/code/${code}`))
+  async getPromoCodeByCode(ctx: MyContext, code: string): Promise<PromoCodeExtended | null> {
+    try {
+      return await this.request<PromoCodeExtended>(ctx, "GET", `/v1/promo-code/code/${code}`);
+    } catch (e) {
+      console.error('getPromoCodeByCode error:', e);
+      return null;
+    }
   }
 
-  async upgradeLevel(ctx: MyContext): Promise<ExtendedUserProgress> {
-    return (await this.request<ExtendedUserProgress>(ctx, "PATCH", `/v1/progresses/upgrade`))
+  async upgradeLevel(ctx: MyContext): Promise<ExtendedUserProgress | null> {
+    try {
+      return await this.request<ExtendedUserProgress>(ctx, "PATCH", `/v1/progresses/upgrade`);
+    } catch (e) {
+      console.error('upgradeLevel error:', e);
+      return null;
+    }
   }
 
-  async createMyPromoCode(ctx: MyContext): Promise<PromoCode> {
-    return (await this.request<PromoCode>(ctx, "POST", `/v1/promo-code/my`))
+  async createMyPromoCode(ctx: MyContext): Promise<PromoCode | null> {
+    try {
+      return await this.request<PromoCode>(ctx, "POST", `/v1/promo-code/my`);
+    } catch (e) {
+      console.error('createMyPromoCode error:', e);
+      return null;
+    }
   }
 }
