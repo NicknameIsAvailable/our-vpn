@@ -73,10 +73,6 @@ export class ConfigsService {
       promoCode = await this.prisma.promoCode.findFirst({ where: { code: createConfigDto.promoCode } });
     }
 
-    if (promoCode === null && createConfigDto.promoCode) {
-      throw new Error('Promo code not found');
-    }
-
     const email = `${createConfigDto.username ? createConfigDto.username : createConfigDto.tgUserId}-${createConfigDto.months}m-${generateRandomString(8)}@our-vpn.pro`;
     const location = await this.prisma.location.findFirst({ where: { id: createConfigDto.locationId } });
 

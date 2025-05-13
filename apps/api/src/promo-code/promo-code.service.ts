@@ -74,14 +74,24 @@ export class PromoCodeService {
   }
 
   async savePromoCode(tgUserId: bigint, promoCodeId: string) {
+    const promoCode = await this.prisma.promoCode.findUnique({ where: { id: promoCodeId } });
+
+    if (!promoCode) {
+        throw new Error("Промокод не найден");
+    }
+
+    if (promoCode.ownerId === tgUserId) {
+        throw new Error("Вы не можете использовать свой собственный промокод");
+    }
+
     return this.prisma.tgUser.update({
-      where: { id: tgUserId },
-      data: {
-        savedPromoCodes: {
-          connect: { id: promoCodeId },
+        where: { id: tgUserId },
+        data: {
+            savedPromoCodes: {
+                connect: { id: promoCodeId },
+            },
         },
-      },
-      include: { savedPromoCodes: true },
+        include: { savedPromoCodes: true },
     });
   }
 
@@ -120,8 +130,6 @@ export class PromoCodeService {
       },
       include: { usedPromoCodes: true, savedPromoCodes: true },
     });
-
-    console.log("promoCode", promoCode)
 
     if (promoCode.owner?.userProgress) {
       await this.prisma.userProgress.update({

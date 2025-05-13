@@ -376,11 +376,10 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
 🎯 *Ваш реферальный промокод готов\\!*
 
 📝 *Код:* \`${data.code}\`
-🔗 *Ссылка:* [тык сюда](${data.url})
 
 🎁 *Бонусы:*
 • ${data.bonusDays} дней подписки за активацию
-• ${data.referralDiscountPercent}% скидка для рефералов
+• 20% скидка для рефералов
 • ${data.usesCount} использований осталось
 
 *Поделитесь с друзьями и получайте бонусы\\!* 🚀
@@ -392,7 +391,7 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
           [
             {
               text: "📤 Поделиться",
-              switch_inline_query: `Привет! Подключайся к нашему VPN, вот промокод: <a href="${data.url}">${data.code}</a>`,
+              switch_inline_query: `Привет! Подключайся к Нашему ВПН💪, вот ссылка на промокод для подписки: ${data.url}`,
               parse_mode: "HTML"
             }
           ],
@@ -615,7 +614,13 @@ ${promoCodeData.description}
     const data = await this.apiService.savePromoCode(ctx, promoCode.id);
 
     if (data) {
-        return ctx.reply(`✅ Промокод ${promoCode.code} сохранен! Вы можете использовать его при следующей покупке 👇`, {
+        return ctx.reply(`✅ Промокод ${promoCode.code} сохранён!
+\n
+🔒 Он теперь привязан к вашему аккаунту — вы сможете легко применить его при покупке подписки.
+\n
+💸 Скидка будет автоматически применена, а владелец промокода получит бонус за приглашение.
+\n
+👇 Нажмите ниже, чтобы оформить подписку со скидкой:`, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "🔥 Подписаться 💳", callback_data: "subscribe_command" }],

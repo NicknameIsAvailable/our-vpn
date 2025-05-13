@@ -75,8 +75,8 @@ export class ConfigsService {
       const config = await this.apiService.createConfig(ctx, configData);
 
       if (ctx.session?.selectedPromoCode) {
-        console.log("Использован промокод: ", {selectedPromoCode: ctx.session.selectedPromoCode})
         await this.apiService.usePromoCode(ctx, ctx.session.selectedPromoCode.id);
+        ctx.session.selectedPromoCode = null
       }
 
       const qrPath = `/tmp/qrcode_${tgUserId}.png`;
