@@ -382,19 +382,14 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
 • 20% скидка для рефералов
 • ${data.usesCount} использований осталось
 
-*Поделитесь с друзьями и получайте бонусы\\!* 🚀
+*Отправь друзьям ссылку ниже и получай бонусы\\!* 🚀
+
+${escapeMarkdownV2(data.url)}
     `;
 
     const keyboard = {
       reply_markup: {
         inline_keyboard: [
-          [
-            {
-              text: "📤 Поделиться",
-              switch_inline_query: `Привет! Подключайся к Нашему ВПН💪, вот ссылка на промокод для подписки: ${data.url}`,
-              parse_mode: "HTML"
-            }
-          ],
           [this.menuButton]
         ]
       }
