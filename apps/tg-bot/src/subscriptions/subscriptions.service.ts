@@ -1,14 +1,15 @@
 import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { MyContext } from '../types/my-context';
-import { Context } from 'telegraf';
+import { Context, session } from 'telegraf';
 import { Update } from 'telegraf/typings/core/types/typegram';
-import { prices } from '../assets/assets';
+import { LabeledPrice, prices } from '../assets/assets';
 import { ApiService } from '../api/api.service';
 import { ConfigsService } from '../configs/configs.service';
 import { paymentMethods } from '../assets/payment-methods';
 import { randomUUID } from 'crypto';
 import { Checkout } from 'types/checkout';
 import { countryToEmoji } from 'functions/country-to-emoji';
+import { escapeMarkdownV2 } from '../utils/escape-markdown';
 
 @Injectable()
 export class SubscriptionsService {
@@ -175,8 +176,6 @@ export class SubscriptionsService {
   async handleExtendMonths(ctx: MyContext, months: string, configId: string) {
     const config = await this.apiService.getConfigById(ctx, configId);
 
-    console.log({ months, configId })
-
     if (!config) {
       await ctx.reply("❌ Конфигурация не найдена");
         return;
@@ -263,7 +262,7 @@ export class SubscriptionsService {
     return price / 100;
   }
 
-  async showSubscriptionOptions(ctx: any) {
+  async showSubscriptionOptions(ctx: MyContext) {
     const message = "Выберите вариант подписки";
     const keyboard = {
       inline_keyboard: prices.map((price) => ([
@@ -429,7 +428,7 @@ export class SubscriptionsService {
     ctx.editMessageText(`Вы выбрали ${currentPrice.label}`);
     const message = await ctx.reply(
       `💳 *Оплата*\n\n` +
-      `Сумма к оплате: *${finalAmount}₽*\n\n` +
+      `Сумма к оплате: *${escapeMarkdownV2(finalAmount.toString())}₽*\n\n` +
       `Нажмите кнопку ниже для перехода к оплате 👇`,
       {
         parse_mode: "MarkdownV2",
@@ -508,7 +507,7 @@ export class SubscriptionsService {
     ctx.editMessageText(`Вы выбрали продление ${configToExtend.name} на ${months} ${months === 1 ? 'месяц' : 'месяца'}`);
     const message = await ctx.reply(
       `💳 *Оплата*\n\n` +
-      `Сумма к оплате: *${finalAmount}₽*\n\n` +
+      `Сумма к оплате: *${escapeMarkdownV2(finalAmount.toString())}₽*\n\n` +
       `Нажмите кнопку ниже для перехода к оплате 👇`,
       {
         parse_mode: "MarkdownV2",
@@ -543,6 +542,8 @@ export class SubscriptionsService {
 
       if (invoice.entity.paid && invoice.entity.status === "succeeded") {
         this.stopCheckoutPolling(invoiceId);
+
+        console.log({ isNewConfig: ctx.session?.isNewConfig, configToExtend: ctx.session?.configToExtend })
 
         // Выбираем правильный метод в зависимости от типа операции
         if (ctx.session?.isNewConfig) {
@@ -658,7 +659,7 @@ export class SubscriptionsService {
 
     const expiryDate = config.expiryTime ? new Date(Number(config.expiryTime)).toLocaleDateString() : "бессрочно";
     const promoCodeInfo = ctx.session?.selectedPromoCode
-      ? `\n🎟 Используется промокод: ${this.escapeMarkdown(ctx.session.selectedPromoCode.code)} (${ctx.session.selectedPromoCode.discountPercent}% скидка)`
+      ? `\n🎟 Используется промокод: ${this.escapeMarkdown(ctx.session.selectedPromoCode.code)} ${escapeMarkdownV2(`(${ctx.session.selectedPromoCode.discountPercent}% скидка)`)}`
       : '';
 
     await ctx.editMessageText(

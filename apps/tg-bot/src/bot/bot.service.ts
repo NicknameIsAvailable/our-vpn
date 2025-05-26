@@ -168,6 +168,7 @@ export class BotService {
       }
 
       if (data === "skip_promo") {
+        ctx.session.selectedPromoCode = null;
         await this.subscriptionsService.showSubscriptionOptions(ctx);
         return;
       }
@@ -375,7 +376,7 @@ export class BotService {
                 console.error(`Error processing step ${step.number}:`, error);
               }
             }
-            await ctx.reply("🔥 <b>Готово!</b> Теперь ты можешь свободно пользоваться интернетом. Если что-то непонятно — сразу пиши в поддержку бота. Мы всегда рядом 💬");
+            await ctx.reply("🔥 <b>Готово!</b> Теперь ты можешь свободно пользоваться интернетом. Если что-то непонятно — сразу пиши в поддержку бота. Мы всегда рядом 💬", {parse_mode: "HTML"});
           } else {
             await ctx.answerCbQuery();
             await ctx.reply("Инструкция не найдена 😢");

@@ -229,22 +229,22 @@ export const stagePrices: LabeledPrice[] = [
   },
   {
     label: "1 месяц подписки",
-    amount: 10 * 100,
+    amount: 11 * 100,
     key: "1m",
   },
   {
     label: "3 месяца подписки",
-    amount: 10 * 100,
+    amount: 11 * 100,
     key: "3m",
   },
   {
     label: "6 месяцев подписки",
-    amount: 10 * 100,
+    amount: 11 * 100,
     key: "6m",
   },
   {
     label: "12 месяцев подписки",
-    amount: 10 * 100,
+    amount: 11 * 100,
     key: "12m",
   }
 ]

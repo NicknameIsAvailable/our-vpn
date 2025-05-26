@@ -51,15 +51,12 @@ export class ConfigsService {
       if (!isTrial)
         await ctx.reply('💸 Спасибо за оплату! 🙏')
 
-      console.log({locationId})
 
       const location = await this.apiService.getLocationById(ctx, locationId.split("_")[2]);
 
-      console.log({location})
 
       await ctx.reply(`🔄 Генерируем подключение для сервера в ${location.label}...`);
 
-      console.log("✅ Перед вызовом createConfig");
 
       const configData = {
         tgUserId: String(tgUserId),
@@ -173,8 +170,6 @@ export class ConfigsService {
     const isExpired = (client as any).expiryTime !== 0 && Number((client as any).expiryTime) < currentTime;
     const statusEmoji = isExpired ? "🔴" : "🟢";
 
-    console.log({client})
-
     const caption = `${statusEmoji} *${escapeMarkdownV2(client.name)}*\n`
     + `⏳ *Дата окончания*: ${escapeMarkdownV2(expiryTime)}\n`
     + `🌎 *Локация*: ${countryToEmoji((client as any).location.country)} ${escapeMarkdownV2((client as any).location.country)} ${escapeMarkdownV2((client as any).location.city)}\n`
@@ -190,7 +185,6 @@ export class ConfigsService {
 
       const callbackData = (ctx.callbackQuery as any)?.data;
       if (!callbackData) {
-        console.log('No callback data');
         return;
       }
 
@@ -198,7 +192,6 @@ export class ConfigsService {
       const client = await this.apiService.getConfigById(ctx as MyContext, configId);
 
       if (!client) {
-        console.log('Config not found');
         return ctx.answerCbQuery("❌ Подключение не найдено\\!", { show_alert: true });
       }
 
@@ -209,7 +202,6 @@ export class ConfigsService {
       await generateQrCode(client.vlessUrl, qrPath);
 
       if (!fs.existsSync(qrPath)) {
-        console.log('QR code file not found');
         return ctx.reply('Ошибка при генерации QR-кода');
       }
 
@@ -231,9 +223,7 @@ export class ConfigsService {
   };
 
   async extend(ctx: MyContext) {
-    console.log("extend")
     const { configToExtend, waitingForDaysInput, selectedDays, selectedMonths } = ctx.session;
-    console.log({ selectedMonths })
     await ctx.reply("🔄 Продлеваем вашу подписку...");
     const data = await this.apiService.extendConfig(ctx, configToExtend.id, {
       useAccumulatedDays: waitingForDaysInput,
@@ -242,10 +232,11 @@ export class ConfigsService {
     });
     if (data) {
       await ctx.reply(
-        `✨ *Подписка успешно продлена\\!*\n\n` +
+        escapeMarkdownV2(
+        `✨ Подписка успешно продлена!\n\n` +
         `🔑 Ключ: ${configToExtend.name}\n` +
         `⏳ Продлено на: ${data.daysAdded} дней\n` +
-        `📅 Действует до: ${moment(Number(data.expiryTime)).format("DD.MM.YYYY HH:mm")}`,
+        `📅 Действует до: ${moment(Number(data.expiryTime)).format("DD.MM.YYYY HH:mm")}`),
         {
           parse_mode: "MarkdownV2",
           reply_markup: {

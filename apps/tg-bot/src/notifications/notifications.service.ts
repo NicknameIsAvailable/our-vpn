@@ -13,7 +13,6 @@ export class NotificationsService {
   ) {}
   async notifyUsers(message: string, userIds?: string[]) {
     try {
-      console.log({ message, userIds })
 
       if (userIds && userIds.length > 0) {
         for (const userId of userIds) {
@@ -53,7 +52,6 @@ ${referralBonus ? `✨ ${referralBonus}` : ''}
 Спасибо, что помогаете нам расти\\! 🌱
 `;
 
-    console.log({ message })
 
     return this.notifyUsers(message, [notifyReferralDto.referrerId]);
   }

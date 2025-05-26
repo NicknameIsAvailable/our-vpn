@@ -139,7 +139,7 @@ export class ReferralSystemService {
 
       clearInterval(interval);
 
-      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✨ Регистрация успешно завершена\\!Добро пожаловать в реферальную программу\\!🚀");
+      await ctx.telegram.editMessageText(ctx.chat.id, message.message_id, undefined, "✨ Регистрация успешно завершена!Добро пожаловать в реферальную программу!🚀");
 
       await this.sendReferralSystemControlPanel(ctx, data);
     } catch (error) {
@@ -383,8 +383,6 @@ ${level.constantBonusDiscount ? `\\- *${escapeMarkdownV2(String(level.constantBo
 • ${data.usesCount} использований осталось
 
 *Отправь друзьям ссылку ниже и получай бонусы\\!* 🚀
-
-${escapeMarkdownV2(data.url)}
     `;
 
     const keyboard = {
@@ -397,8 +395,18 @@ ${escapeMarkdownV2(data.url)}
 
     if (newMessage) {
       ctx.reply(message, { parse_mode: "MarkdownV2", ...keyboard });
+      ctx.reply(
+        escapeMarkdownV2(data.url), {
+          parse_mode: "MarkdownV2",
+        }
+      );
     } else {
       ctx.editMessageText(message, { parse_mode: "MarkdownV2", ...keyboard });
+      ctx.reply(
+        escapeMarkdownV2(data.url), {
+          parse_mode: "MarkdownV2",
+        }
+      );
     }
   }
 
@@ -411,12 +419,19 @@ ${escapeMarkdownV2(data.url)}
     }
 
     const userData = await this.apiService.getUserData(ctx);
+
+    console.log({ userData, promoCodeData });
+
+    if (BigInt(promoCodeData.ownerId) === BigInt(userData.id)) {
+      return ctx.reply("❌ Вы не можете сохранить свой собственный промокод")
+    }
+
     if (userData.savedPromoCodes.some(promo => promo.id === promoCodeData.id)) {
-        return ctx.editMessageText("❌ Вы уже сохраняли этот промокод ранее").catch(() => ctx.reply("❌ Вы уже сохраняли этот промокод ранее"));
+        return ctx.reply("❌ Вы уже сохраняли этот промокод ранее").catch(() => ctx.reply("❌ Вы уже сохраняли этот промокод ранее"));
     }
 
     if (userData.usedPromoCodes.some(promo => promo.id === promoCodeData.id)) {
-        return ctx.editMessageText("❌ Вы уже использовали этот промокод ранее").catch(() => ctx.reply("❌ Вы уже использовали этот промокод ранее"));
+        return ctx.reply("❌ Вы уже использовали этот промокод ранее").catch(() => ctx.reply("❌ Вы уже использовали этот промокод ранее"));
     }
 
     await ctx.editMessageText(`✅ Промокод найден\\!
@@ -432,7 +447,7 @@ ${promoCodeData.description}
     const data = await this.apiService.savePromoCode(ctx, promoCodeData.id);
 
     if (data) {
-        return ctx.reply(`✅ Промокод ${promoCodeData.code} сохранен! Вы можете использовать его при следующей покупке 👇`, {
+        return ctx.editMessageText(`✅ Промокод ${promoCodeData.code} сохранен! Вы можете использовать его при следующей покупке 👇`, {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "🔥 Подписаться 💳", callback_data: "subscribe_command" }],
@@ -440,7 +455,7 @@ ${promoCodeData.description}
             }
         });
     } else {
-        return ctx.reply("❌ Не удалось сохранить промокод");
+        return ctx.editMessageText("❌ Не удалось сохранить промокод");
     }
   }
 
