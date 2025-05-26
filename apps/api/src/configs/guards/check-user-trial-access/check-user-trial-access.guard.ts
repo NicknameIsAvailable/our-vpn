@@ -7,7 +7,6 @@ export class CheckUserTrialAccessGuard implements CanActivate {
   constructor(private reflector: Reflector, private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    console.log('CheckUserTrialAccessGuard triggered');
 
     const request = context.switchToHttp().getRequest();
     const tgUserId = Number(request.headers['tguserid']);

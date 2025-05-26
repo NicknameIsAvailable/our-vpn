@@ -68,7 +68,6 @@ export class CheckoutService {
   }
 
   async deleteHookById(id: string) {
-    console.log({ deleteHookById: id })
     try {
       await checkout.deleteWebHook(id)
       return {

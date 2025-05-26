@@ -154,7 +154,6 @@ export class ConfigsService {
       }
     }});
 
-    console.log({ config: parseXUIConfig(data.config) })
 
     return {
       ...data,
@@ -183,8 +182,6 @@ export class ConfigsService {
     if (!config) {
       throw new Error('Конфиг не найден');
     }
-
-    console.log({ config, tgUserId })
 
     if (config.tgUserId.toString() !== tgUserId.toString()) {
       throw new Error('У вас нет доступа к этому конфигу');

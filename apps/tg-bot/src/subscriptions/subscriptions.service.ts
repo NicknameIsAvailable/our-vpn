@@ -543,7 +543,6 @@ export class SubscriptionsService {
       if (invoice.entity.paid && invoice.entity.status === "succeeded") {
         this.stopCheckoutPolling(invoiceId);
 
-        console.log({ isNewConfig: ctx.session?.isNewConfig, configToExtend: ctx.session?.configToExtend })
 
         // Выбираем правильный метод в зависимости от типа операции
         if (ctx.session?.isNewConfig) {

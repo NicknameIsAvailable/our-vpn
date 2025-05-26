@@ -150,7 +150,6 @@ export class PromoCodeService {
 
     try {
       await this.apiService.notifyReferral(notifyReferralDto);
-      console.log("Referral notification sent successfully");
     } catch (error) {
       console.error("Failed to send referral notification:", error);
     }

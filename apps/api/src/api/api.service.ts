@@ -11,7 +11,6 @@ export class ApiService {
     const url = `${this.apiUrl}/notifications/referral`;
     try {
       const response = await this.httpService.post(url, notifyReferralDto).toPromise();
-      console.log("Referral notification sent successfully:", response.data);
       return response.data;
     } catch (error) {
       console.error("Error sending referral notification:", error.response?.data || error.message);
